@@ -12,9 +12,9 @@ pub fn validate_identifier(lex: &logos::Lexer<Token>) -> Result<String, CustomEr
     }
 }
 
-pub fn validate_integer(lex: &logos::Lexer<Token>) -> Result<i32, CustomError> {
+pub fn validate_integer(lex: &logos::Lexer<Token>) -> Result<i16, CustomError> {
     let slice = lex.slice();
-    match slice.parse::<i32>() {
+    match slice.parse::<i16>() {
         Ok(num) => Ok(num),
         Err(_) => Err(CustomError::IntegerOverflow(slice.to_string())),
     }
@@ -39,34 +39,49 @@ fn validate_char_array(lex: &logos::Lexer<Token>) -> Result<String, CustomError>
     Ok(slice)
 }
 // Main token enum
+#[derive(Logos, Debug, PartialEq, Clone)]
+pub enum Keyword{
+    VarGlobal,
+    Declaration,
+    Instruction,
+    Const,
+    IF,
+    ELSE,
+    FOR,
+}
+pub enum Type{
+    INTEGER,
+    FLOAT,
+    CHAR
+}
 #[derive(Logos, Debug, PartialEq)]
+#[logos(error= CustomError)]
 pub enum Token {
     // Keywords
-    #[token("VAR_GLOBAL")]
+    #[token("VAR_GLOBAL",priority=5)]
     VarGlobal,
-    #[token("DECLARATION")]
+    #[token("DECLARATION", priority=5 )]
     Declaration,
-    #[token("INSTRUCTION")]
+    #[token("INSTRUCTION", priority=5 )]
     Instruction,
-    #[token("CONST")]
+    #[token("CONST", priority=5 )]
     Const,
-    #[token("READ")]
+    #[token("READ", priority=5 )]
     Read,
-    #[token("WRITE")]
+    #[token("WRITE", priority=5 )]
     Write,
-    #[token("IF")]
+    #[token("IF", priority=5 )]
     If,
-    #[token("ELSE")]
+    #[token("ELSE", priority=5 )]
     Else,
-    #[token("FOR")]
+    #[token("FOR", priority=5 )]
     For,
-
     // Types
-    #[token("INTEGER")]
+    #[token("INTEGER", priority=5 )]
     IntegerType,
-    #[token("FLOAT")]
+    #[token("FLOAT", priority=5 )]
     FloatType,
-    #[token("CHAR")]
+    #[token("CHAR", priority=5 )]
     CharType,
 
     // Operators
@@ -84,6 +99,8 @@ pub enum Token {
     Or,
     #[token("!")]
     Not,
+
+    // comparison operators
     #[token(">")]
     GreaterThan,
     #[token("<")]
@@ -97,9 +114,10 @@ pub enum Token {
     #[token("!=")]
     NotEqual,
 
-    // Assignment and punctuation
+    // Assignment
     #[token("=")]
     Assign,
+    // delimiters
     #[token(";")]
     Semicolon,
     #[token("{")]
@@ -110,15 +128,19 @@ pub enum Token {
     OpenParen,
     #[token(")")]
     CloseParen,
+    #[token(",")]
+    Comma,
+    #[token(":")]
+    Colon,
 
     // Constants and Identifiers
-    #[regex(r"[A-Z][a-zA-Z0-9]{0,7}", crate::validate_identifier)]
+    #[regex(r"[A-Z][a-zA-Z0-9]*",validate_identifier)]
     Identifier(String),
 
-    #[regex(r"[0-9]+", validate_integer)]
-    Integer(i32),
+    #[regex(r"[0-9]+", callback =validate_integer)]
+    Integer(i16),
 
-    #[regex(r"[0-9]*\.[0-9]+", validate_float)]
+    #[regex(r"[0-9]*\.[0-9]+", callback=validate_float)]
     Float(f32),
 
     #[regex(r#"'[a-zA-Z]'"#, |lex| lex.slice().chars().nth(1))] // Single CHAR type
@@ -130,14 +152,14 @@ pub enum Token {
     #[regex(r#""(?:[^"\\]|\\.)*""#, |lex| lex.slice().to_string())]
     StringLiteral(String),
     // Comment and whitespace
-    #[regex(r"%%[^\n]*", logos::skip, priority = 5)]
+    #[regex(r"%%[^\n]*", logos::skip)]
     Comment,
-    #[regex(r"[ \t\n\f]+", logos::skip,priority = 2)]
+    #[regex(r"[ \t\n\f]+", logos::skip)]
     Whitespace,
 
     // Custom error handling for unrecognized tokens
-    #[regex(r"[^A-Za-z0-9+\-*/(){};=<>!&|.%\[\]\s]", |lex| CustomError::UnrecognizedToken(lex.slice().to_string()))]
-    Error(CustomError),
+    // #[regex(r"[^A-Za-z0-9+\-*:/,(){};=<>!&|.%\[\]\s]", |lex| CustomError::UnrecognizedToken(lex.slice().to_string()))]
+    // Error(CustomError),
 }
 
 

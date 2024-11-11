@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::lexer::Token;
+    use crate::lexer::{Keyword, Token};
     use crate::error::CustomError;
     use logos::Logos;
 
@@ -19,7 +19,7 @@ mod tests {
     fn test_full_program() {
         let mut lexer = Token::lexer("
             VAR_GLOBAL {
-                INTEGER X;
+                INTEGER V,X, W;
                 FLOAT Y;
                 CHAR Name[10];
             }
@@ -27,12 +27,13 @@ mod tests {
                 CONST INTEGER D = 5;
             }
             INSTRUCTION {
+                N = 10;
                 IF (X > 0) {
                     WRITE(\"X is positive\");
                 } ELSE {
                     WRITE(\"x is non-positive\");
                 }
-                FOR (I = 0; I < 10; I = I + 1) {
+                FOR (I = 0:  2 : N) {
                     WRITE(I);
                 }
             }
@@ -44,13 +45,12 @@ mod tests {
             }
         }
     }
-
     #[test]
     fn test_invalid_identifiers_and_overflows() {
         let mut lexer = Token::lexer("VERYLONGID");
-        assert_eq!(lexer.next(), Some(Ok(Token::Error(CustomError::IdentifierTooLong("VERYLONGID".to_string())))));
+        assert_eq!(lexer.next(), Some(Err(CustomError::IdentifierTooLong("VERYLONGID".to_string()))));
 
-        let mut lexer = Token::lexer("2147483648"); // Overflows i32
-        assert_eq!(lexer.next(), Some(Ok(Token::Error(CustomError::IntegerOverflow("2147483648".to_string())))));
+        let mut lexer = Token::lexer("2147483648"); // Overflows i16
+        assert_eq!(lexer.next(), Some(Err(CustomError::IntegerOverflow("2147483648".to_string()))));
     }
 }

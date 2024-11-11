@@ -8,6 +8,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a6ccc3f2-2ab4-4808-a11a-83d8a535c6b5" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lexer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lexer.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests.rs" afterDir="false" />
@@ -43,6 +45,9 @@
   <component name="MacroExpansionManager">
     <option name="directoryName" value="o5diaibr" />
   </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 4
 }</component>
@@ -73,6 +78,7 @@
 }]]></component>
   <component name="RunManager" selected="Cargo.Test tests::tests::test_invalid_identifiers_and_overflows">
     <configuration name="Run" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="buildProfileId" value="dev" />
       <option name="command" value="run --package MinING_compiler_project --bin MinING_compiler_project" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <envs />
@@ -143,7 +149,7 @@
       <option name="presentableId" value="Default" />
       <updated>1731342797289</updated>
       <workItem from="1731342801317" duration="6062000" />
-      <workItem from="1731348995391" duration="1908000" />
+      <workItem from="1731348995391" duration="9293000" />
     </task>
     <servers />
   </component>
