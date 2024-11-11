@@ -43,16 +43,6 @@ mod tests {
                 Err(e) => println!("some error occurred: {:?}", e),
             }
         }
-        // assert_eq!(lexer.next(), Some(Ok(Token::VarGlobal)));
-        // assert_eq!(lexer.next(), Some(Ok(Token::OpenBrace)));
-        // assert_eq!(lexer.next(), Some(Ok(Token::IntegerType)));
-        // assert_eq!(lexer.next(), Some(Ok(Token::Identifier("x".to_string()))));
-        // assert_eq!(lexer.next(), Some(Ok(Token::Semicolon)));
-        // assert_eq!(lexer.next(), Some(Ok(Token::FloatType)));
-        // assert_eq!(lexer.next(), Some(Ok(Token::Identifier("y".to_string()))));
-        // assert_eq!(lexer.next(), Some(Ok(Token::Semicolon)));
-        // assert_eq!(lexer.next(), Some(Ok(Token::CharType)));
-        // assert_eq!(lexer.next(), Some(Token::CharArray("name".to_string(), 10)));
     }
 
     #[test]
