@@ -9,7 +9,6 @@
   <component name="ChangeListManager">
     <list default="true" id="a6ccc3f2-2ab4-4808-a11a-83d8a535c6b5" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lexer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lexer.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests.rs" afterDir="false" />
@@ -114,6 +113,7 @@
       </method>
     </configuration>
     <configuration name="Test tests::tests::test_invalid_identifiers_and_overflows" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="buildProfileId" value="test" />
       <option name="command" value="test --package MinING_compiler_project --bin MinING_compiler_project tests::tests::test_invalid_identifiers_and_overflows -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <envs />
@@ -149,7 +149,7 @@
       <option name="presentableId" value="Default" />
       <updated>1731342797289</updated>
       <workItem from="1731342801317" duration="6062000" />
-      <workItem from="1731348995391" duration="9293000" />
+      <workItem from="1731348995391" duration="10802000" />
     </task>
     <servers />
   </component>

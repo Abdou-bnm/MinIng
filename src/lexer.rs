@@ -137,10 +137,10 @@ pub enum Token {
     #[regex(r"[A-Z][a-zA-Z0-9]*",validate_identifier)]
     Identifier(String),
 
-    #[regex(r"[0-9]+", callback =validate_integer)]
+    #[regex(r"[0-9]+",validate_integer)]
     Integer(i16),
 
-    #[regex(r"[0-9]*\.[0-9]+", callback=validate_float)]
+    #[regex(r"[0-9]*\.[0-9]+", validate_float)]
     Float(f32),
 
     #[regex(r#"'[a-zA-Z]'"#, |lex| lex.slice().chars().nth(1))] // Single CHAR type

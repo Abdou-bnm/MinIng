@@ -25,6 +25,7 @@ mod tests {
             }
             DECLARATION {
                 CONST INTEGER D = 5;
+                CONST FLOAT R = .6;
             }
             INSTRUCTION {
                 N = 10;
@@ -52,5 +53,7 @@ mod tests {
 
         let mut lexer = Token::lexer("2147483648"); // Overflows i16
         assert_eq!(lexer.next(), Some(Err(CustomError::IntegerOverflow("2147483648".to_string()))));
+        // let mut lexer = Token::lexer("340282350000000000000000000000000000001.0"); // Overflows f32
+        // assert_eq!(lexer.next(), Some(Err(CustomError::FloatOverflow("340282350000000000000000000000000000001.0".to_string()))));
     }
 }

@@ -6,5 +6,5 @@ mod error;
 
 
 fn main() {
-
+    println!("{}", f32::MAX);
 }
