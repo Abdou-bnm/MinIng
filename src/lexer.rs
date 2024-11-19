@@ -132,6 +132,10 @@ pub enum Token {
     Comma,
     #[token(":")]
     Colon,
+    #[token("[")]
+    OpenBracket,
+    #[token("]")]
+    CloseBracket,
 
     // Constants and Identifiers
     #[regex(r"[A-Z][a-zA-Z0-9]*",validate_identifier)]
