@@ -1,3 +1,6 @@
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+#![allow(dead_code)]
 #[cfg(test)]
 mod tests {
     use crate::lexer::{Keyword, Token};
@@ -18,12 +21,15 @@ mod tests {
     #[test]
     fn test_full_program() {
         let mut lexer = Token::lexer("
+            %% THIS IS A COMMENT
             VAR_GLOBAL {
                 INTEGER V,X, W;
+            %% THIS IS A COMMENT
                 FLOAT Y;
                 CHAR Name[10];
             }
             DECLARATION {
+            %% THIS IS A COMMENT
                 CONST INTEGER D = 5;
                 CONST FLOAT R = .6;
             }

@@ -1,8 +1,10 @@
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+#![allow(dead_code)]
 use logos::Logos;
 use crate::error::CustomError;
 
 // Validation functions
-
 pub fn validate_identifier(lex: &logos::Lexer<Token>) -> Result<String, CustomError> {
     let ident = lex.slice().to_string();
     if ident.len() > 8 {
@@ -55,7 +57,8 @@ pub enum Type{
     CHAR
 }
 #[derive(Logos, Debug, PartialEq)]
-#[logos(error= CustomError)]
+#[logos(error = CustomError)]
+#[logos(skip r"([ \t\n\f]+|%%[^\n]*)")]
 pub enum Token {
     // Keywords
     #[token("VAR_GLOBAL",priority=5)]
@@ -152,18 +155,8 @@ pub enum Token {
 
     #[regex(r"[A-Z][a-zA-Z0-9]{0,7}\[[0-9]+\]", validate_char_array)]
     CharArray(String),
+    // TODO: If no remove it, add the size of the array to the returned value so it becomes a tuple of (identifier, size)
 
     #[regex(r#""(?:[^"\\]|\\.)*""#, |lex| lex.slice().to_string())]
     StringLiteral(String),
-    // Comment and whitespace
-    #[regex(r"%%[^\n]*", logos::skip)]
-    Comment,
-    #[regex(r"[ \t\n\f]+", logos::skip)]
-    Whitespace,
-
-    // Custom error handling for unrecognized tokens
-    // #[regex(r"[^A-Za-z0-9+\-*:/,(){};=<>!&|.%\[\]\s]", |lex| CustomError::UnrecognizedToken(lex.slice().to_string()))]
-    // Error(CustomError),
 }
-
-
