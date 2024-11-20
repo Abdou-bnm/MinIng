@@ -1,0 +1,76 @@
+<program> -> VAR_GLOBAL OpenBrace <var_global_block> CloseBrace DECLARATION OpenBrace <declaration_block> CloseBrace INSTRUCTION OpenBrace <instruction_block> CloseBrace
+
+
+
+	<declaration_block> CloseBrace <INSTRUCTION> OpenBrace <instruction_block> CloseBrace
+
+
+// Blocks
+	<var_global_block> -> <declaration> <var_global_block> | ε
+
+	<declaration_block> -> <declaration> <declaration_block> | ε
+
+	<instruction_block> -> <instruction> <instruction_block> | ε
+
+
+	<var_list> -> IDENTIFIER Comma <var_list> | IDENTIFIER
+
+	<type> -> IntegerType
+		| FloatType
+		| CharType
+
+	<declaration> -> <type> <var_list> Semicolon 
+			| <type> IDENTIFIER OpenBracket Integer(SIZE) CloseBracket Semicolon 
+			| CONST <type> IDENTIFIER Assign <value> Semicolon 
+
+
+ 	<INSTRUCTION> -> <Assignment>  
+			| <IfStatement> 
+			| <ForLoop> 
+			| <ReadStatement>  
+			| <WriteStatement> 
+             
+            
+		//assignment
+	<Assignment> -> Identifier Assign <Expression> Semicolon
+
+  	<Expression> -> <Expression> Plus <Term> | <Expression> Minus <Term> | <Term>
+        
+	<Term> -> <Term> Multiply <Factor>  | <Term> Divide <Factor>  | <Factor>
+
+	<Factor> -> OpenParen <Expression> CloseParen  | Identifier  | Integer | Float | Char
+
+       
+       		 //IF
+	<IfStatement> -> If OpenParen <Condition> CloseParen OpenBrace <Instruction_block> CloseBrace <ElseBlock>
+  
+	<ElseBlock> -> Else OpenBrace <Instruction_block> CloseBrace | ε
+          
+  
+		//condition
+	<Condition> -> Not <BasicCondition> | <BasicCondition> | <Condition> <LogicalOperator> <Condition>
+           		          
+	<BasicCondition> -> <Expression> <RelationalOperator> <Expression>  | OpenParen <Condition> CloseParen
+               
+	<RelationalOperator> -> GreaterThan | LessThan | GreaterEqual  | LessEqual  | Equal  | NotEqual
+               
+	<LogicalOperator> -> And  | Or
+                
+
+		//loop
+	<loop_assign> -> Identifier Assign <Expression> 
+	<ForLoop> -> For OpenParen <loop_assign> Colon <Expression> Colon <Expression> CloseParen OpenBrace <instruction_block> CloseBrace
+
+	
+		// read
+
+	<ReadStatement> -> Read OpenParen Identifier CloseParen Semicolon
+
+
+		//write
+
+	<WriteStatement> -> Write OpenParen <WriteElementList> CloseParen Semicolon
+
+   	<WriteElementList> -> <WriteElement> Comma <WriteElementList>  | <WriteElement>
+                 
+	<WriteElement> -> StringLiteral | Identifier
