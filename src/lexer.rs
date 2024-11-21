@@ -30,16 +30,16 @@ fn validate_float(lex: &logos::Lexer<Token>) -> Result<f32, CustomError> {
     }
 }
 
-fn validate_char_array(lex: &logos::Lexer<Token>) -> Result<String, CustomError> {
-    let slice = lex.slice().to_string();
-    let parts: Vec<&str> = slice.split(|c| c == '[' || c == ']').collect();
-    let identifier = parts[0].to_string();
-    if identifier.len() > 8 {
-        return Err(CustomError::IdentifierTooLong(identifier));
-    }
-    let length: usize = parts[1].parse().map_err(|_| CustomError::InvalidNumberFormat(parts[1].to_string()))?;
-    Ok(slice)
-}
+// fn validate_char_array(lex: &logos::Lexer<Token>) -> Result<String, CustomError> {
+//     let slice = lex.slice().to_string();
+//     let parts: Vec<&str> = slice.split(|c| c == '[' || c == ']').collect();
+//     let identifier = parts[0].to_string();
+//     if identifier.len() > 8 {
+//         return Err(CustomError::IdentifierTooLong(identifier));
+//     }
+//     let length: usize = parts[1].parse().map_err(|_| CustomError::InvalidNumberFormat(parts[1].to_string()))?;
+//     Ok(slice)
+// }
 // Main token enum
 #[derive(Logos, Debug, PartialEq, Clone)]
 pub enum Keyword{
@@ -153,9 +153,8 @@ pub enum Token {
     #[regex(r#"'[a-zA-Z]'"#, |lex| lex.slice().chars().nth(1))] // Single CHAR type
     Char(char),
 
-    #[regex(r"[A-Z][a-zA-Z0-9]{0,7}\[[0-9]+\]", validate_char_array)]
-    CharArray(String),
-    // TODO: If no remove it, add the size of the array to the returned value so it becomes a tuple of (identifier, size)
+    // #[regex(r"[A-Z][a-zA-Z0-9]{0,7}\[[0-9]+\]", validate_char_array)]
+    // CharArray(String),
 
     #[regex(r#""(?:[^"\\]|\\.)*""#, |lex| lex.slice().to_string())]
     StringLiteral(String),

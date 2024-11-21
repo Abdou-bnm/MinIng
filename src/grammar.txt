@@ -13,55 +13,78 @@
 	<instruction_block> -> <instruction> <instruction_block> | ε
 
 
-	<var_list> -> IDENTIFIER Comma <var_list> | IDENTIFIER
+	<var_list> -> <simple_var> | <array_var>
+
+
+    <simple_var> -> IDENTIFIER Comma <var_list>
+		           |IDENTIFIER
+		           |<assignment>
+		           |<assignment> Comma <var_list>
+
+
+    <array_var> ->    <array_identifier> Comma <var_list>
+                    | <array_identifier> CloseBracket
+                    | <array_identifier> Assign OpenBracket <expr_list_array> CloseBracket
+                    | <array_identifier> Assign OpenBracket <expr_list_array> CloseBracket Comma <var_list>
+
+    <array_identifier> -> IDENTIFIER OpenBracket Integer(SIZE) CloseBracket
+
+    <expr_list_array> ->  <Expression> Comma <expr_list_array>
+                    | <Expression>
+
+
+    <assing_list> -> <assignment>
+                    |<assignment> Comma <assing_list>
+
+	<assignment> -> IDENTIFIER Assign <Expression>
 
 	<type> -> IntegerType
 		| FloatType
 		| CharType
 
-	<declaration> -> <type> <var_list> Semicolon 
-			| <type> IDENTIFIER OpenBracket Integer(SIZE) CloseBracket Semicolon 
-			| CONST <type> IDENTIFIER Assign <value> Semicolon 
+	<declaration> -> <type> <var_list> Semicolon
+			| <type>  <array_dec> Semicolon
+			| CONST <type> <assing_list> Semicolon
 
 
- 	<INSTRUCTION> -> <Assignment>  
-			| <IfStatement> 
-			| <ForLoop> 
-			| <ReadStatement>  
-			| <WriteStatement> 
-             
-            
-		//assignment
-	<Assignment> -> Identifier Assign <Expression> Semicolon
+ 	<INSTRUCTION> -> <Assign_Instr>
+			| <IfStatement>
+			| <ForLoop>
+			| <ReadStatement>
+			| <WriteStatement>
+
+
+		//Assign_Instr
+	<Assign_Instr> -> Identifier Assign <Expression> Semicolon
 
   	<Expression> -> <Expression> Plus <Term> | <Expression> Minus <Term> | <Term>
-        
+
 	<Term> -> <Term> Multiply <Factor>  | <Term> Divide <Factor>  | <Factor>
 
 	<Factor> -> OpenParen <Expression> CloseParen  | Identifier  | Integer | Float | Char
 
-       
+
        		 //IF
 	<IfStatement> -> If OpenParen <Condition> CloseParen OpenBrace <Instruction_block> CloseBrace <ElseBlock>
-  
+
 	<ElseBlock> -> Else OpenBrace <Instruction_block> CloseBrace | ε
-          
-  
+
+
 		//condition
 	<Condition> -> Not <BasicCondition> | <BasicCondition> | <Condition> <LogicalOperator> <Condition>
-           		          
+
 	<BasicCondition> -> <Expression> <RelationalOperator> <Expression>  | OpenParen <Condition> CloseParen
-               
+
 	<RelationalOperator> -> GreaterThan | LessThan | GreaterEqual  | LessEqual  | Equal  | NotEqual
-               
+
 	<LogicalOperator> -> And  | Or
-                
+
 
 		//loop
-	<loop_assign> -> Identifier Assign <Expression> 
+	<loop_assign> -> Identifier Assign <Expression>
 	<ForLoop> -> For OpenParen <loop_assign> Colon <Expression> Colon <Expression> CloseParen OpenBrace <instruction_block> CloseBrace
 
-	
+
 		// read
 
 	<ReadStatement> -> Read OpenParen Identifier CloseParen Semicolon
@@ -72,5 +95,5 @@
 	<WriteStatement> -> Write OpenParen <WriteElementList> CloseParen Semicolon
 
    	<WriteElementList> -> <WriteElement> Comma <WriteElementList>  | <WriteElement>
-                 
+
 	<WriteElement> -> StringLiteral | Identifier

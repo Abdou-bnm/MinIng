@@ -6,8 +6,13 @@ use crate::lexer::Token;
 mod tests;
 mod lexer;
 mod error;
+mod symbol_table;
 
+fn main(){
+    let mut a  = 5;
 
-fn main() {
-    println!("{}", f32::MAX);
+    {
+        a= 6;
+    }
+    println!("a={}",a);
 }
