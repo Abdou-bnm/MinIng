@@ -1,10 +1,5 @@
 <program> -> VAR_GLOBAL OpenBrace <var_global_block> CloseBrace DECLARATION OpenBrace <declaration_block> CloseBrace INSTRUCTION OpenBrace <instruction_block> CloseBrace
 
-
-
-	<declaration_block> CloseBrace <INSTRUCTION> OpenBrace <instruction_block> CloseBrace
-
-
 // Blocks
 	<var_global_block> -> <declaration> <var_global_block> | ε
 
@@ -15,46 +10,43 @@
 
 	<var_list> -> <simple_var> | <array_var>
 
-
     <simple_var> -> IDENTIFIER Comma <var_list>
-		           |IDENTIFIER
-		           |<assignment>
-		           |<assignment> Comma <var_list>
+		          | IDENTIFIER
+		          | <assignment>
+		          | <assignment> Comma <var_list>
 
 
-    <array_var> ->    <array_identifier> Comma <var_list>
-                    | <array_identifier> CloseBracket
-                    | <array_identifier> Assign OpenBracket <expr_list_array> CloseBracket
-                    | <array_identifier> Assign OpenBracket <expr_list_array> CloseBracket Comma <var_list>
+    <array_var> -> <array_identifier> Comma <var_list>
+                 | <array_identifier> CloseBracket
+                 | <array_identifier> Assign OpenBracket <expr_list_array> CloseBracket
+                 | <array_identifier> Assign OpenBracket <expr_list_array> CloseBracket Comma <var_list>
 
     <array_identifier> -> IDENTIFIER OpenBracket Integer(SIZE) CloseBracket
 
-    <expr_list_array> ->  <Expression> Comma <expr_list_array>
-                    | <Expression>
+    <expr_list_array> -> <Expression> Comma <expr_list_array>
+                       | <Expression>
 
 
-    <assing_list> -> <assignment>
-                    |<assignment> Comma <assing_list>
+    <assign_list> -> <assignment>
+                   | <assignment> Comma <assign_list>
 
 	<assignment> -> IDENTIFIER Assign <Expression>
 
 	<type> -> IntegerType
-		| FloatType
-		| CharType
+		    | FloatType
+		    | CharType
 
 	<declaration> -> <type> <var_list> Semicolon
-			| <type>  <array_dec> Semicolon
-			| CONST <type> <assing_list> Semicolon
-
+			       | <type>  <array_dec> Semicolon
+			       | CONST <type> <assign_list> Semicolon
 
  	<INSTRUCTION> -> <Assign_Instr>
-			| <IfStatement>
-			| <ForLoop>
-			| <ReadStatement>
-			| <WriteStatement>
+    			   | <IfStatement>
+			       | <ForLoop>
+			       | <ReadStatement>
+			       | <WriteStatement>
 
-
-		//Assign_Instr
+    // Assign_Instr
 	<Assign_Instr> -> Identifier Assign <Expression> Semicolon
 
   	<Expression> -> <Expression> Plus <Term> | <Expression> Minus <Term> | <Term>
@@ -64,13 +56,13 @@
 	<Factor> -> OpenParen <Expression> CloseParen  | Identifier  | Integer | Float | Char
 
 
-       		 //IF
+     //IF
 	<IfStatement> -> If OpenParen <Condition> CloseParen OpenBrace <Instruction_block> CloseBrace <ElseBlock>
 
 	<ElseBlock> -> Else OpenBrace <Instruction_block> CloseBrace | ε
 
 
-		//condition
+    // Condition
 	<Condition> -> Not <BasicCondition> | <BasicCondition> | <Condition> <LogicalOperator> <Condition>
 
 	<BasicCondition> -> <Expression> <RelationalOperator> <Expression>  | OpenParen <Condition> CloseParen
@@ -80,18 +72,16 @@
 	<LogicalOperator> -> And  | Or
 
 
-		//loop
+    // Loop
 	<loop_assign> -> Identifier Assign <Expression>
 	<ForLoop> -> For OpenParen <loop_assign> Colon <Expression> Colon <Expression> CloseParen OpenBrace <instruction_block> CloseBrace
 
 
-		// read
-
+    // Read
 	<ReadStatement> -> Read OpenParen Identifier CloseParen Semicolon
 
 
-		//write
-
+    // Write
 	<WriteStatement> -> Write OpenParen <WriteElementList> CloseParen Semicolon
 
    	<WriteElementList> -> <WriteElement> Comma <WriteElementList>  | <WriteElement>

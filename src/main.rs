@@ -1,18 +1,19 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
+#![allow(nonstandard_style)]
+
+use std::collections::HashMap;
 use crate::lexer::Token;
 
-mod tests;
+// mod tests;
 mod lexer;
 mod error;
-mod symbol_table;
+mod TS;
+mod tests;
 
 fn main(){
-    let mut a  = 5;
-
-    {
-        a= 6;
-    }
-    println!("a={}",a);
+    let mut a  = HashMap::new();
+    a.insert("key1", 4);
+    println!("a = {}",a["key"]);
 }

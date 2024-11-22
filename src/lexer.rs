@@ -1,16 +1,31 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
+#![allow(nonstandard_style)]
+
+use std::collections::HashMap;
+use std::sync::atomic::Ordering;
+use std::sync::Mutex;
+use once_cell::sync::Lazy;
 use logos::Logos;
 use crate::error::CustomError;
+use crate::TS;
 
-// Validation functions
-pub fn validate_identifier(lex: &logos::Lexer<Token>) -> Result<String, CustomError> {
-    let ident = lex.slice().to_string();
-    if ident.len() > 8 {
-        Err(CustomError::IdentifierTooLong(ident))
+
+pub static SymbolTable: Lazy<Mutex<HashMap<String, TS::Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+
+// Validation functions Copy,
+fn validate_identifier(lex: &logos::Lexer<Token>) -> Result<String, CustomError> {
+    let Identifier = lex.slice().to_string();
+    if Identifier.len() > 8 {
+        Err(CustomError::IdentifierTooLong(Identifier))
     } else {
-        Ok(ident)
+        if !TS::IB_FLAG.load(Ordering::SeqCst) {
+            let symbol = TS::Symbol::new(Identifier.to_string(), None, None, None, None);
+            SymbolTable.lock().unwrap()
+                .insert(Identifier.as_str().to_string(), symbol);
+        }
+        Ok(Identifier)
     }
 }
 
@@ -30,16 +45,9 @@ fn validate_float(lex: &logos::Lexer<Token>) -> Result<f32, CustomError> {
     }
 }
 
-// fn validate_char_array(lex: &logos::Lexer<Token>) -> Result<String, CustomError> {
-//     let slice = lex.slice().to_string();
-//     let parts: Vec<&str> = slice.split(|c| c == '[' || c == ']').collect();
-//     let identifier = parts[0].to_string();
-//     if identifier.len() > 8 {
-//         return Err(CustomError::IdentifierTooLong(identifier));
-//     }
-//     let length: usize = parts[1].parse().map_err(|_| CustomError::InvalidNumberFormat(parts[1].to_string()))?;
-//     Ok(slice)
-// }
+fn Clear_BI_Flag(lex: &logos::Lexer<Token>) {
+    TS::IB_FLAG.store(true, Ordering::SeqCst);
+}
 // Main token enum
 #[derive(Logos, Debug, PartialEq, Clone)]
 pub enum Keyword{
@@ -56,35 +64,36 @@ pub enum Type{
     FLOAT,
     CHAR
 }
+
 #[derive(Logos, Debug, PartialEq)]
 #[logos(error = CustomError)]
 #[logos(skip r"([ \t\n\f]+|%%[^\n]*)")]
 pub enum Token {
     // Keywords
-    #[token("VAR_GLOBAL",priority=5)]
+    #[token("VAR_GLOBAL", priority = 5)]
     VarGlobal,
-    #[token("DECLARATION", priority=5 )]
+    #[token("DECLARATION", priority = 5)]
     Declaration,
-    #[token("INSTRUCTION", priority=5 )]
+    #[token("INSTRUCTION", Clear_BI_Flag, priority = 5)]
     Instruction,
-    #[token("CONST", priority=5 )]
+    #[token("CONST", priority = 5)]
     Const,
-    #[token("READ", priority=5 )]
+    #[token("READ", priority = 5)]
     Read,
-    #[token("WRITE", priority=5 )]
+    #[token("WRITE", priority = 5)]
     Write,
-    #[token("IF", priority=5 )]
+    #[token("IF", priority = 5)]
     If,
-    #[token("ELSE", priority=5 )]
+    #[token("ELSE", priority = 5)]
     Else,
-    #[token("FOR", priority=5 )]
+    #[token("FOR", priority = 5)]
     For,
     // Types
-    #[token("INTEGER", priority=5 )]
+    #[token("INTEGER", priority = 5)]
     IntegerType,
-    #[token("FLOAT", priority=5 )]
+    #[token("FLOAT", priority = 5)]
     FloatType,
-    #[token("CHAR", priority=5 )]
+    #[token("CHAR", priority = 5)]
     CharType,
 
     // Operators
@@ -141,10 +150,10 @@ pub enum Token {
     CloseBracket,
 
     // Constants and Identifiers
-    #[regex(r"[A-Z][a-zA-Z0-9]*",validate_identifier)]
+    #[regex(r"[A-Z][a-zA-Z0-9]*", validate_identifier)]
     Identifier(String),
 
-    #[regex(r"[0-9]+",validate_integer)]
+    #[regex(r"[0-9]+", validate_integer)]
     Integer(i16),
 
     #[regex(r"[0-9]*\.[0-9]+", validate_float)]
@@ -152,9 +161,6 @@ pub enum Token {
 
     #[regex(r#"'[a-zA-Z]'"#, |lex| lex.slice().chars().nth(1))] // Single CHAR type
     Char(char),
-
-    // #[regex(r"[A-Z][a-zA-Z0-9]{0,7}\[[0-9]+\]", validate_char_array)]
-    // CharArray(String),
 
     #[regex(r#""(?:[^"\\]|\\.)*""#, |lex| lex.slice().to_string())]
     StringLiteral(String),

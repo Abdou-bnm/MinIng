@@ -6,6 +6,7 @@ mod tests {
     use crate::lexer::{Keyword, Token};
     use crate::error::CustomError;
     use logos::Logos;
+    use crate::lexer::SymbolTable;
 
     #[test]
     fn test_keywords_and_types() {
@@ -34,6 +35,7 @@ mod tests {
                 CONST FLOAT R = .6;
             }
             INSTRUCTION {
+                INTEGER Var0;
                 N = 10;
                 IF (X > 0) {
                     WRITE(\"X is positive\");
@@ -45,11 +47,18 @@ mod tests {
                 }
             }
         ");
+        println!("Will start printing the tokens...");
         for token in lexer.by_ref() {
             match token {
                 Ok(token) => println!("{:#?}", token),
                 Err(e) => println!("some error occurred: {:?}", e),
             }
+        }
+
+        println!("\n\nWill start printing the Symbol Table...");
+        let table = SymbolTable.lock().unwrap();
+        for (key, value) in table.iter() {
+            println!("{}", value);
         }
     }
     #[test]

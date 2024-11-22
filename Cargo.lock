@@ -7,6 +7,7 @@ name = "MinING_compiler_project"
 version = "0.1.0"
 dependencies = [
  "logos",
+ "once_cell",
 ]
 
 [[package]]
@@ -59,6 +60,12 @@ checksum = "3e5d0c5463c911ef55624739fc353238b4e310f0144be1f875dc42fec6bfd5ec"
 dependencies = [
  "logos-codegen",
 ]
+
+[[package]]
+name = "once_cell"
+version = "1.20.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
 
 [[package]]
 name = "proc-macro2"
