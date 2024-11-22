@@ -53,8 +53,12 @@
 
 	<Term> -> <Term> Multiply <Factor>  | <Term> Divide <Factor>  | <Factor>
 
-	<Factor> -> OpenParen <Expression> CloseParen  | Identifier  | Integer | Float | Char
-
+	<Factor> -> OpenParen <Expression> CloseParen  | Identifier  | <INTEGER> | <FLOAT> | Char
+    <INTEGER> -> Integer
+               | OpenParen <Sign> Integer CloseParen
+    <FLOAT> -> Float
+             | OpenParen <Sign> Float CloseParen
+    <Sing> -> Plus | Minus
 
      //IF
 	<IfStatement> -> If OpenParen <Condition> CloseParen OpenBrace <Instruction_block> CloseBrace <ElseBlock>
