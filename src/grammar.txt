@@ -49,7 +49,7 @@
     // Assign_Instr
 	<Assign_Instr> -> Identifier Assign <Expression> Semicolon
 
-  	<Expression> -> <Expression> Plus <Term> | <Expression> Minus <Term> | <Term>
+  	<Expression> -> <Expression> <Sign> <Term> | <Term>
 
 	<Term> -> <Term> Multiply <Factor>  | <Term> Divide <Factor>  | <Factor>
 
@@ -58,9 +58,9 @@
                | OpenParen <Sign> Integer CloseParen
     <FLOAT> -> Float
              | OpenParen <Sign> Float CloseParen
-    <Sing> -> Plus | Minus
+    <Sign> -> Plus | Minus
 
-     //IF
+    //IF
 	<IfStatement> -> If OpenParen <Condition> CloseParen OpenBrace <Instruction_block> CloseBrace <ElseBlock>
 
 	<ElseBlock> -> Else OpenBrace <Instruction_block> CloseBrace | ε

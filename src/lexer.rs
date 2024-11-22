@@ -11,7 +11,7 @@ use logos::Logos;
 use crate::error::CustomError;
 use crate::TS;
 
-
+    
 pub static SymbolTable: Lazy<Mutex<HashMap<String, TS::Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 // Validation functions Copy,
