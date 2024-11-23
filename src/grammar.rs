@@ -1,8 +1,12 @@
 // auto-generated: "lalrpop 0.22.0"
-// sha3: 6c80ee4046516f0ecd57623fc9cb2286fdb10c2d9938cab654d3fd99e6f46e26
+// sha3: 59dbf3435bbe09f9ab20c9bd654719aa54d9a964bc9b432ef7fbf561103e57a9
 use std::str::FromStr;
 use crate::ast::*;
 use crate::lexer::Token;
+use crate::TS::{Symbol, Types, TypeValue};
+use crate::lexer::SymbolTable;
+use std::sync::atomic::Ordering;
+use crate::error::CustomError;
 #[allow(unused_extern_crates)]
 extern crate lalrpop_util as __lalrpop_util;
 #[allow(unused_imports)]
@@ -17,6 +21,10 @@ mod __parse__Program {
     use std::str::FromStr;
     use crate::ast::*;
     use crate::lexer::Token;
+    use crate::TS::{Symbol, Types, TypeValue};
+    use crate::lexer::SymbolTable;
+    use std::sync::atomic::Ordering;
+    use crate::error::CustomError;
     #[allow(unused_extern_crates)]
     extern crate lalrpop_util as __lalrpop_util;
     #[allow(unused_imports)]
@@ -876,7 +884,7 @@ mod __parse__Program {
     where 
     {
         type Location = usize;
-        type Error = crate::error::CustomError;
+        type Error = CustomError;
         type Token = Token;
         type TokenIndex = usize;
         type Symbol = __Symbol<>;
@@ -1582,7 +1590,7 @@ mod __parse__Program {
             &self,
             text: &str,
             __tokens0: __TOKENS,
-        ) -> Result<Program, __lalrpop_util::ParseError<usize, Token, crate::error::CustomError>>
+        ) -> Result<Program, __lalrpop_util::ParseError<usize, Token, CustomError>>
         {
             let __tokens = __tokens0.into_iter();
             let mut __tokens = __tokens.map(|t| __ToTriple::to_triple(t));
@@ -1636,7 +1644,7 @@ mod __parse__Program {
         __states: &mut alloc::vec::Vec<i16>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
         _: core::marker::PhantomData<()>,
-    ) -> Option<Result<Program,__lalrpop_util::ParseError<usize, Token, crate::error::CustomError>>>
+    ) -> Option<Result<Program,__lalrpop_util::ParseError<usize, Token, CustomError>>>
     {
         let (__pop_states, __nonterminal) = match __action {
             0 => {
@@ -3794,7 +3802,9 @@ fn __action1<
     (_, _, _): (usize, Token, usize),
 ) -> Program
 {
-    Program::new(g, d, i)
+    {
+        Program::new(g, d, i)
+    }
 }
 
 #[allow(unused_variables)]
@@ -3840,7 +3850,40 @@ fn __action5<
     (_, _, _): (usize, Token, usize),
 ) -> Declaration
 {
-    Declaration::Variables(t, v)
+    {
+        let rust_type = match t {
+            Type::Integer => Types::Integer,
+            Type::Float => Types::Float,
+            Type::Char => Types::Char,
+        };
+        
+        for var in &v {
+            let mut table = SymbolTable.lock().unwrap();
+            match var {
+                Variable::Simple(name) => {
+                    if let Some(symbol) = table.get_mut(name) {
+                        symbol.Type = Some(rust_type.clone());
+                        symbol.Is_Constant = Some(false);
+                    }
+                },
+                Variable::Initialized(name, expr) => {
+                    if let Some(symbol) = table.get_mut(name) {
+                        symbol.Type = Some(rust_type.clone());
+                        symbol.Is_Constant = Some(false);
+                        
+                        // Set initial value based on expression type
+                        symbol.Value = match expr {
+                            Expr::Literal(Literal::Integer(i)) => Some(TypeValue::Integer(*i as i16)),
+                            Expr::Literal(Literal::Float(f)) => Some(TypeValue::Float(*f as f32)),
+                            Expr::Char(c) => Some(TypeValue::Char(*c)),
+                            _ => None // Handle other cases appropriately
+                        };
+                    }
+                }
+            }
+        }
+        Declaration::Variables(t, v)
+    }
 }
 
 #[allow(unused_variables)]
@@ -3853,7 +3896,16 @@ fn __action6<
     (_, _, _): (usize, Token, usize),
 ) -> Declaration
 {
-    Declaration::Array(t, a)
+    {
+        let mut table = SymbolTable.lock().unwrap();
+        if let Some(symbol) = table.get_mut(&a.name) {
+            symbol.Type = Some(Types::Array);
+            symbol.Is_Constant = Some(false);
+            // Initialize empty array
+            symbol.Value = Some(TypeValue::Array(Vec::new()));
+        }
+        Declaration::Array(t, a)
+    }
 }
 
 #[allow(unused_variables)]
@@ -3867,7 +3919,30 @@ fn __action7<
     (_, _, _): (usize, Token, usize),
 ) -> Declaration
 {
-    Declaration::Constant(t, a)
+    {
+        let rust_type = match t {
+            Type::Integer => Types::Integer,
+            Type::Float => Types::Float,
+            Type::Char => Types::Char,
+        };
+        
+        for assign in &a {
+            let mut table = SymbolTable.lock().unwrap();
+            if let Some(symbol) = table.get_mut(&assign.var) {
+                symbol.Type = Some(rust_type.clone());
+                symbol.Is_Constant = Some(true);
+                
+                // Set constant value based on expression type
+                symbol.Value = match &assign.expr {
+                    Expr::Literal(Literal::Integer(i)) => Some(TypeValue::Integer(*i as i16)),
+                    Expr::Literal(Literal::Float(f)) => Some(TypeValue::Float(*f as f32)),
+                    Expr::Char(c) => Some(TypeValue::Char(*c)),
+                    _ => None // Handle other cases
+                };
+            }
+        }
+        Declaration::Constant(t, a)
+    }
 }
 
 #[allow(unused_variables)]
@@ -3965,7 +4040,9 @@ fn __action15<
     (_, _, _): (usize, Token, usize),
 ) -> ArrayDecl
 {
-    ArrayDecl::new(i, Expr::Literal(Literal::Integer(s as i32)))
+    {
+        ArrayDecl::new(i, Expr::Literal(Literal::Integer(s as i32)))
+    }
 }
 
 #[allow(unused_variables)]
@@ -4005,7 +4082,16 @@ fn __action18<
     (_, e, _): (usize, Expr, usize),
 ) -> Assignment
 {
-    Assignment::new(v, e)
+    {
+        if crate::TS::IB_FLAG.load(Ordering::SeqCst) {
+            let table = SymbolTable.lock().unwrap();
+            if !table.contains_key(&v) {
+                panic!("Undefined variable: {}", v);
+            }
+            // Could add type checking here
+        }
+        Assignment::new(v, e)
+    }
 }
 
 #[allow(unused_variables)]
@@ -4159,7 +4245,15 @@ fn __action31<
     (_, i, _): (usize, String, usize),
 ) -> Expr
 {
-    Expr::Variable(i)
+    {
+        if crate::TS::IB_FLAG.load(Ordering::SeqCst) {
+            let table = SymbolTable.lock().unwrap();
+            if !table.contains_key(&i) {
+                panic!("Undefined variable in expression: {}", i);
+            }
+        }
+        Expr::Variable(i)
+    }
 }
 
 #[allow(unused_variables)]
@@ -4445,7 +4539,13 @@ fn __action54<
     (_, _, _): (usize, Token, usize),
 ) -> ReadStmt
 {
-    ReadStmt::new(i)
+    {
+        let table = SymbolTable.lock().unwrap();
+        if !table.contains_key(&i) {
+            panic!("Undefined variable in READ statement: {}", i);
+        }
+        ReadStmt::new(i)
+    }
 }
 
 #[allow(unused_variables)]
@@ -4509,7 +4609,13 @@ fn __action59<
     (_, i, _): (usize, String, usize),
 ) -> WriteElement
 {
-    WriteElement::Variable(i)
+    {
+        let table = SymbolTable.lock().unwrap();
+        if !table.contains_key(&i) {
+            panic!("Undefined variable in WRITE statement: {}", i);
+        }
+        WriteElement::Variable(i)
+    }
 }
 
 #[allow(unused_variables)]
@@ -5376,18 +5482,18 @@ fn __action92<
 #[allow(clippy::type_complexity, dead_code)]
 pub  trait __ToTriple<>
 {
-    fn to_triple(self) -> Result<(usize,Token,usize), __lalrpop_util::ParseError<usize, Token, crate::error::CustomError>>;
+    fn to_triple(self) -> Result<(usize,Token,usize), __lalrpop_util::ParseError<usize, Token, CustomError>>;
 }
 
 impl<> __ToTriple<> for (usize, Token, usize)
 {
-    fn to_triple(self) -> Result<(usize,Token,usize), __lalrpop_util::ParseError<usize, Token, crate::error::CustomError>> {
+    fn to_triple(self) -> Result<(usize,Token,usize), __lalrpop_util::ParseError<usize, Token, CustomError>> {
         Ok(self)
     }
 }
-impl<> __ToTriple<> for Result<(usize, Token, usize), crate::error::CustomError>
+impl<> __ToTriple<> for Result<(usize, Token, usize), CustomError>
 {
-    fn to_triple(self) -> Result<(usize,Token,usize), __lalrpop_util::ParseError<usize, Token, crate::error::CustomError>> {
+    fn to_triple(self) -> Result<(usize,Token,usize), __lalrpop_util::ParseError<usize, Token, CustomError>> {
         self.map_err(|error| __lalrpop_util::ParseError::User { error })
     }
 }

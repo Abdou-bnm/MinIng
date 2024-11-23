@@ -1,13 +1,19 @@
 use std::str::FromStr;
 use crate::ast::*;
 use crate::lexer::Token;
+use crate::TS::{Symbol, Types, TypeValue};
+use crate::lexer::SymbolTable;
+use std::sync::atomic::Ordering;
+use crate::error::CustomError;
 
 grammar(text: &str);
 
 pub Program: Program = {
     "VAR_GLOBAL" "{" <g:VarGlobalBlock?> "}"
     "DECLARATION" "{" <d:DeclarationBlock?> "}"
-    "INSTRUCTION" "{" <i:InstructionBlock?> "}" => Program::new(g, d, i)
+    "INSTRUCTION" "{" <i:InstructionBlock?> "}" => {
+        Program::new(g, d, i)
+    }
 };
 
 VarGlobalBlock: Vec<Declaration> = {
@@ -23,9 +29,76 @@ InstructionBlock: Vec<Instruction> = {
 };
 
 Declaration: Declaration = {
-    <t:Type> <v:VarList> ";" => Declaration::Variables(t, v),
-    <t:Type> <a:ArrayDecl> ";" => Declaration::Array(t, a),
-    "CONST" <t:Type> <a:AssignList> ";" => Declaration::Constant(t, a),
+    <t:Type> <v:VarList> ";" => {
+        let rust_type = match t {
+            Type::Integer => Types::Integer,
+            Type::Float => Types::Float,
+            Type::Char => Types::Char,
+        };
+        
+        for var in &v {
+            let mut table = SymbolTable.lock().unwrap();
+            match var {
+                Variable::Simple(name) => {
+                    if let Some(symbol) = table.get_mut(name) {
+                        symbol.Type = Some(rust_type.clone());
+                        symbol.Is_Constant = Some(false);
+                    }
+                },
+                Variable::Initialized(name, expr) => {
+                    if let Some(symbol) = table.get_mut(name) {
+                        symbol.Type = Some(rust_type.clone());
+                        symbol.Is_Constant = Some(false);
+                        
+                        // Set initial value based on expression type
+                        symbol.Value = match expr {
+                            Expr::Literal(Literal::Integer(i)) => Some(TypeValue::Integer(*i as i16)),
+                            Expr::Literal(Literal::Float(f)) => Some(TypeValue::Float(*f as f32)),
+                            Expr::Char(c) => Some(TypeValue::Char(*c)),
+                            _ => None // Handle other cases appropriately
+                        };
+                    }
+                }
+            }
+        }
+        Declaration::Variables(t, v)
+    },
+    
+    <t:Type> <a:ArrayDecl> ";" => {
+        let mut table = SymbolTable.lock().unwrap();
+        if let Some(symbol) = table.get_mut(&a.name) {
+            symbol.Type = Some(Types::Array);
+            symbol.Is_Constant = Some(false);
+            // Initialize empty array
+            symbol.Value = Some(TypeValue::Array(Vec::new()));
+        }
+        Declaration::Array(t, a)
+    },
+    
+    "CONST" <t:Type> <a:AssignList> ";" => {
+        let rust_type = match t {
+            Type::Integer => Types::Integer,
+            Type::Float => Types::Float,
+            Type::Char => Types::Char,
+        };
+        
+        for assign in &a {
+            let mut table = SymbolTable.lock().unwrap();
+            if let Some(symbol) = table.get_mut(&assign.var) {
+                symbol.Type = Some(rust_type.clone());
+                symbol.Is_Constant = Some(true);
+                
+                // Set constant value based on expression type
+                symbol.Value = match &assign.expr {
+                    Expr::Literal(Literal::Integer(i)) => Some(TypeValue::Integer(*i as i16)),
+                    Expr::Literal(Literal::Float(f)) => Some(TypeValue::Float(*f as f32)),
+                    Expr::Char(c) => Some(TypeValue::Char(*c)),
+                    _ => None // Handle other cases
+                };
+            }
+        }
+        Declaration::Constant(t, a)
+    },
 };
 
 Type: Type = {
@@ -48,8 +121,9 @@ SimpleVar: Variable = {
 };
 
 ArrayDecl: ArrayDecl = {
-    <i:"Identifier"> "[" <s:"Integer"> "]" =>
-        ArrayDecl::new(i, Expr::Literal(Literal::Integer(s as i32))),
+    <i:"Identifier"> "[" <s:"Integer"> "]" => {
+        ArrayDecl::new(i, Expr::Literal(Literal::Integer(s as i32)))
+    }
 };
 
 AssignList: Vec<Assignment> = {
@@ -61,7 +135,16 @@ AssignList: Vec<Assignment> = {
 };
 
 Assignment: Assignment = {
-    <v:"Identifier"> "=" <e:Expr> => Assignment::new(v, e),
+    <v:"Identifier"> "=" <e:Expr> => {
+        if crate::TS::IB_FLAG.load(Ordering::SeqCst) {
+            let table = SymbolTable.lock().unwrap();
+            if !table.contains_key(&v) {
+                panic!("Undefined variable: {}", v);
+            }
+            // Could add type checking here
+        }
+        Assignment::new(v, e)
+    }
 };
 
 Instruction: Instruction = {
@@ -86,14 +169,22 @@ Term: Expr = {
 
 Factor: Expr = {
     "(" <Expr> ")" => <>,
-    <i:"Identifier"> => Expr::Variable(i),
+    <i:"Identifier"> => {
+        if crate::TS::IB_FLAG.load(Ordering::SeqCst) {
+            let table = SymbolTable.lock().unwrap();
+            if !table.contains_key(&i) {
+                panic!("Undefined variable in expression: {}", i);
+            }
+        }
+        Expr::Variable(i)
+    },
     <n:"Integer"> => Expr::Literal(Literal::Integer(n as i32)),
     <f:"Float"> => Expr::Literal(Literal::Float(f as f64)),
     <c:"Char"> => Expr::Char(c),
 };
 
 IfStatement: IfStmt = {
-    "IF" "(" <c:Condition> ")" "{" <t:InstructionBlock> "}" <e:ElseBlock?> =>
+    "IF" "(" <c:Condition> ")" "{" <t:InstructionBlock> "}" <e:ElseBlock?> => 
         IfStmt::new(c, t, e),
 };
 
@@ -107,12 +198,14 @@ Condition: Condition = {
 
 OrCondition: Condition = {
     AndCondition => <>,
-    <l:OrCondition> "||" <r:AndCondition> => Condition::Logic(Box::new(l), LogOp::Or, Box::new(r)),
+    <l:OrCondition> "||" <r:AndCondition> => 
+        Condition::Logic(Box::new(l), LogOp::Or, Box::new(r)),
 };
 
 AndCondition: Condition = {
     NotCondition => <>,
-    <l:AndCondition> "&&" <r:NotCondition> => Condition::Logic(Box::new(l), LogOp::And, Box::new(r)),
+    <l:AndCondition> "&&" <r:NotCondition> => 
+        Condition::Logic(Box::new(l), LogOp::And, Box::new(r)),
 };
 
 NotCondition: Condition = {
@@ -144,7 +237,13 @@ ForLoop: ForStmt = {
 };
 
 ReadStatement: ReadStmt = {
-    "READ" "(" <i:"Identifier"> ")" ";" => ReadStmt::new(i),
+    "READ" "(" <i:"Identifier"> ")" ";" => {
+        let table = SymbolTable.lock().unwrap();
+        if !table.contains_key(&i) {
+            panic!("Undefined variable in READ statement: {}", i);
+        }
+        ReadStmt::new(i)
+    }
 };
 
 WriteStatement: WriteStmt = {
@@ -161,7 +260,13 @@ WriteElementList: Vec<WriteElement> = {
 
 WriteElement: WriteElement = {
     StringLit => WriteElement::String(<>),
-    <i:"Identifier"> => WriteElement::Variable(i),
+    <i:"Identifier"> => {
+        let table = SymbolTable.lock().unwrap();
+        if !table.contains_key(&i) {
+            panic!("Undefined variable in WRITE statement: {}", i);
+        }
+        WriteElement::Variable(i)
+    }
 };
 
 Identifier: String = {
@@ -186,7 +291,7 @@ StringLit: String = {
 
 extern {
     type Location = usize;
-    type Error = crate::error::CustomError;
+    type Error = CustomError;
 
     enum Token {
         "VAR_GLOBAL" => Token::VarGlobal,

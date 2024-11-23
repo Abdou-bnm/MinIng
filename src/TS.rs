@@ -23,11 +23,11 @@ pub enum TypeValue {
 }
 #[derive(Debug)]
 pub struct Symbol {
-    Identifier: String,
-    Type: Option<Types>,
-    Is_Constant: Option<bool>,
-    Address: Option<u64>,
-    Value: Option<TypeValue>,
+    pub Identifier: String,
+    pub Type: Option<Types>,
+    pub Is_Constant: Option<bool>,
+    pub Address: Option<u64>,
+    pub Value: Option<TypeValue>,
 }
 
 impl Symbol {
