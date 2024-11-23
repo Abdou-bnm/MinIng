@@ -177,7 +177,7 @@ mod tests {
     }
 
     #[test]
-    fn test_full_program() {
+    fn test_full() {
         let globals = Some(vec![
             Declaration::Variables(
                 Type::Integer,
