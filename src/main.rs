@@ -11,6 +11,8 @@ mod lexer;
 mod error;
 mod TS;
 mod tests;
+mod ast;
+mod grammar;
 
 fn main(){
     let mut a  = HashMap::new();

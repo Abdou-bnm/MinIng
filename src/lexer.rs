@@ -65,7 +65,7 @@ pub enum Type{
     CHAR
 }
 
-#[derive(Logos, Debug, PartialEq)]
+#[derive(Logos, Debug, PartialEq,Clone)]
 #[logos(error = CustomError)]
 #[logos(skip r"([ \t\n\f]+|%%[^\n]*)")]
 pub enum Token {

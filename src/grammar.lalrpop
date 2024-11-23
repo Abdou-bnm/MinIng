@@ -1,0 +1,233 @@
+use std::str::FromStr;
+use crate::ast::*;
+use crate::lexer::Token;
+
+grammar(text: &str);
+
+pub Program: Program = {
+    "VAR_GLOBAL" "{" <g:VarGlobalBlock?> "}"
+    "DECLARATION" "{" <d:DeclarationBlock?> "}"
+    "INSTRUCTION" "{" <i:InstructionBlock?> "}" => Program::new(g, d, i)
+};
+
+VarGlobalBlock: Vec<Declaration> = {
+    Declaration+ => <>,
+};
+
+DeclarationBlock: Vec<Declaration> = {
+    Declaration+ => <>,
+};
+
+InstructionBlock: Vec<Instruction> = {
+    Instruction+ => <>,
+};
+
+Declaration: Declaration = {
+    <t:Type> <v:VarList> ";" => Declaration::Variables(t, v),
+    <t:Type> <a:ArrayDecl> ";" => Declaration::Array(t, a),
+    "CONST" <t:Type> <a:AssignList> ";" => Declaration::Constant(t, a),
+};
+
+Type: Type = {
+    "INTEGER" => Type::Integer,
+    "FLOAT" => Type::Float,
+    "CHAR" => Type::Char,
+};
+
+VarList: Vec<Variable> = {
+    SimpleVar => vec![<>],
+    <v:SimpleVar> "," <mut vs:VarList> => {
+        vs.insert(0, v);
+        vs
+    }
+};
+
+SimpleVar: Variable = {
+    <i:"Identifier"> => Variable::Simple(i),
+    <v:"Identifier"> "=" <e:Expr> => Variable::Initialized(v, e),
+};
+
+ArrayDecl: ArrayDecl = {
+    <i:"Identifier"> "[" <s:"Integer"> "]" =>
+        ArrayDecl::new(i, Expr::Literal(Literal::Integer(s as i32))),
+};
+
+AssignList: Vec<Assignment> = {
+    Assignment => vec![<>],
+    <a:Assignment> "," <mut as_:AssignList> => {
+        as_.insert(0, a);
+        as_
+    }
+};
+
+Assignment: Assignment = {
+    <v:"Identifier"> "=" <e:Expr> => Assignment::new(v, e),
+};
+
+Instruction: Instruction = {
+    <a:Assignment> ";" => Instruction::Assign(a),
+    <i:IfStatement> => Instruction::If(i),
+    <f:ForLoop> => Instruction::For(f),
+    <r:ReadStatement> => Instruction::Read(r),
+    <w:WriteStatement> => Instruction::Write(w),
+};
+
+Expr: Expr = {
+    Term => <>,
+    <l:Expr> "+" <r:Term> => Expr::BinaryOp(Box::new(l), BinOp::Add, Box::new(r)),
+    <l:Expr> "-" <r:Term> => Expr::BinaryOp(Box::new(l), BinOp::Sub, Box::new(r)),
+};
+
+Term: Expr = {
+    Factor => <>,
+    <l:Term> "*" <r:Factor> => Expr::BinaryOp(Box::new(l), BinOp::Mul, Box::new(r)),
+    <l:Term> "/" <r:Factor> => Expr::BinaryOp(Box::new(l), BinOp::Div, Box::new(r)),
+};
+
+Factor: Expr = {
+    "(" <Expr> ")" => <>,
+    <i:"Identifier"> => Expr::Variable(i),
+    <n:"Integer"> => Expr::Literal(Literal::Integer(n as i32)),
+    <f:"Float"> => Expr::Literal(Literal::Float(f as f64)),
+    <c:"Char"> => Expr::Char(c),
+};
+
+IfStatement: IfStmt = {
+    "IF" "(" <c:Condition> ")" "{" <t:InstructionBlock> "}" <e:ElseBlock?> =>
+        IfStmt::new(c, t, e),
+};
+
+ElseBlock: Vec<Instruction> = {
+    "ELSE" "{" <i:InstructionBlock> "}" => i,
+};
+
+Condition: Condition = {
+    OrCondition => <>,
+};
+
+OrCondition: Condition = {
+    AndCondition => <>,
+    <l:OrCondition> "||" <r:AndCondition> => Condition::Logic(Box::new(l), LogOp::Or, Box::new(r)),
+};
+
+AndCondition: Condition = {
+    NotCondition => <>,
+    <l:AndCondition> "&&" <r:NotCondition> => Condition::Logic(Box::new(l), LogOp::And, Box::new(r)),
+};
+
+NotCondition: Condition = {
+    BaseCondition => <>,
+    "!" <c:NotCondition> => Condition::Not(Box::new(c)),
+};
+
+BaseCondition: Condition = {
+    "(" <Condition> ")" => <>,
+    BasicCondition => Condition::Basic(<>),
+};
+
+BasicCondition: BasicCond = {
+    <l:Expr> <op:RelOp> <r:Expr> => BasicCond::new(l, op, r),
+};
+
+RelOp: RelOp = {
+    ">" => RelOp::Gt,
+    "<" => RelOp::Lt,
+    ">=" => RelOp::Ge,
+    "<=" => RelOp::Le,
+    "==" => RelOp::Eq,
+    "!=" => RelOp::Ne,
+};
+
+ForLoop: ForStmt = {
+    "FOR" "(" <i:Assignment> ":" <s:Expr> ":" <c:Expr> ")" "{" <b:InstructionBlock> "}" =>
+        ForStmt::new(i, s, c, b),
+};
+
+ReadStatement: ReadStmt = {
+    "READ" "(" <i:"Identifier"> ")" ";" => ReadStmt::new(i),
+};
+
+WriteStatement: WriteStmt = {
+    "WRITE" "(" <e:WriteElementList> ")" ";" => WriteStmt::new(e),
+};
+
+WriteElementList: Vec<WriteElement> = {
+    WriteElement => vec![<>],
+    <e:WriteElement> "," <mut es:WriteElementList> => {
+        es.insert(0, e);
+        es
+    }
+};
+
+WriteElement: WriteElement = {
+    StringLit => WriteElement::String(<>),
+    <i:"Identifier"> => WriteElement::Variable(i),
+};
+
+Identifier: String = {
+    <s:"Identifier"> => s,
+};
+
+IntegerLit: i32 = {
+    <n:"Integer"> => n as i32,
+};
+
+FloatLit: f64 = {
+    <f:"Float"> => f as f64,
+};
+
+Char: char = {
+    <c:"Char"> => c,
+};
+
+StringLit: String = {
+    <s:"StringLiteral"> => s,
+};
+
+extern {
+    type Location = usize;
+    type Error = crate::error::CustomError;
+
+    enum Token {
+        "VAR_GLOBAL" => Token::VarGlobal,
+        "DECLARATION" => Token::Declaration,
+        "INSTRUCTION" => Token::Instruction,
+        "CONST" => Token::Const,
+        "READ" => Token::Read,
+        "WRITE" => Token::Write,
+        "IF" => Token::If,
+        "ELSE" => Token::Else,
+        "FOR" => Token::For,
+        "INTEGER" => Token::IntegerType,
+        "FLOAT" => Token::FloatType,
+        "CHAR" => Token::CharType,
+        "+" => Token::Plus,
+        "-" => Token::Minus,
+        "*" => Token::Multiply,
+        "/" => Token::Divide,
+        "&&" => Token::And,
+        "||" => Token::Or,
+        "!" => Token::Not,
+        ">" => Token::GreaterThan,
+        "<" => Token::LessThan,
+        ">=" => Token::GreaterEqual,
+        "<=" => Token::LessEqual,
+        "==" => Token::Equal,
+        "!=" => Token::NotEqual,
+        "=" => Token::Assign,
+        ";" => Token::Semicolon,
+        "{" => Token::OpenBrace,
+        "}" => Token::CloseBrace,
+        "(" => Token::OpenParen,
+        ")" => Token::CloseParen,
+        "," => Token::Comma,
+        ":" => Token::Colon,
+        "[" => Token::OpenBracket,
+        "]" => Token::CloseBracket,
+        "Identifier" => Token::Identifier(<String>),
+        "Integer" => Token::Integer(<i16>),
+        "Float" => Token::Float(<f32>),
+        "Char" => Token::Char(<char>),
+        "StringLiteral" => Token::StringLiteral(<String>),
+    }
+}
