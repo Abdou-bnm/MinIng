@@ -3,12 +3,13 @@
 #![allow(dead_code)]
 #[cfg(test)]
 mod tests {
-    use crate::lexer::{Keyword, Token};
+
+    use crate::Lexer::lexer::{Keyword, Token,SymbolTable};
     use crate::error::CustomError;
     use logos::Logos;
-    use crate::lexer::SymbolTable;
-    use crate::ast::*;
-    use crate::TS::*;
+    use crate::Parser::ast::*;
+    use crate::Semantic::ts::*;
+    use crate::Parser::*;
 
     #[test]
     fn test_keywords_and_types() {
@@ -37,7 +38,7 @@ mod tests {
                 CONST FLOAT R = .6;
             }
             INSTRUCTION {
-                INTEGER Var0;
+
                 N = 10;
                 IF (X > 0) {
                     WRITE(\"X is positive\");
@@ -208,5 +209,5 @@ mod tests {
         assert_eq!(table.get("y").unwrap(), "Float");
         assert_eq!(table.get("z"), None); // 'z' is not in the table as it's defined in instructions
     }
-
+    
 }

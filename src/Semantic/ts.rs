@@ -1,9 +1,8 @@
+
 #![allow(nonstandard_style)]
+use std::sync::atomic::{AtomicBool};
 
-use crate::lexer::Type;
-use std::sync::atomic::{AtomicBool, Ordering};
-
-// IB stands for InstructionBlock, A value of true indicates we have completed the VAR_GLOBAL and the declarations BLOCK, and are currently in the instructions block..
+// IB stands for InstructionBlock, A value of true indicates we have completed the VAR_GLOBAL and the declarations BLOCK, and are currently in the instructions block...
 pub static IB_FLAG: AtomicBool = AtomicBool::new(false);
 
 #[derive(Clone, Debug)]

@@ -9,10 +9,9 @@ use std::sync::Mutex;
 use once_cell::sync::Lazy;
 use logos::Logos;
 use crate::error::CustomError;
-use crate::TS;
-
+use crate::Semantic::ts;
     
-pub static SymbolTable: Lazy<Mutex<HashMap<String, TS::Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+pub static SymbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 // Validation functions Copy,
 fn validate_identifier(lex: &logos::Lexer<Token>) -> Result<String, CustomError> {
@@ -20,8 +19,8 @@ fn validate_identifier(lex: &logos::Lexer<Token>) -> Result<String, CustomError>
     if Identifier.len() > 8 {
         Err(CustomError::IdentifierTooLong(Identifier))
     } else {
-        if !TS::IB_FLAG.load(Ordering::SeqCst) {
-            let symbol = TS::Symbol::new(Identifier.to_string(), None, None, None, None);
+        if !ts::IB_FLAG.load(Ordering::SeqCst) {
+            let symbol = ts::Symbol::new(Identifier.to_string(), None, None, None, None);
             SymbolTable.lock().unwrap()
                 .insert(Identifier.as_str().to_string(), symbol);
         }
@@ -46,7 +45,7 @@ fn validate_float(lex: &logos::Lexer<Token>) -> Result<f32, CustomError> {
 }
 
 fn Clear_BI_Flag(lex: &logos::Lexer<Token>) {
-    TS::IB_FLAG.store(true, Ordering::SeqCst);
+    ts::IB_FLAG.store(true, Ordering::SeqCst);
 }
 // Main token enum
 #[derive(Logos, Debug, PartialEq, Clone)]
