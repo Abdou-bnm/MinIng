@@ -1,4 +1,3 @@
-
 #![allow(nonstandard_style)]
 use std::sync::atomic::{AtomicBool};
 

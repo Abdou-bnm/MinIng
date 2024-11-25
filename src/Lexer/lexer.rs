@@ -10,7 +10,7 @@ use once_cell::sync::Lazy;
 use logos::Logos;
 use crate::error::CustomError;
 use crate::Semantic::ts;
-    
+
 pub static SymbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 // Validation functions Copy,

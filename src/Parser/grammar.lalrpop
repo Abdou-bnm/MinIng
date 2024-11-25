@@ -1,11 +1,11 @@
 use std::str::FromStr;
-use crate::ast::*;
-use crate::lexer::Token;
-use crate::TS::{Symbol, Types, TypeValue};
-use crate::lexer::SymbolTable;
+use crate::Parser::ast::*;
+use crate::Lexer::lexer::{Token, SymbolTable};
+use crate::Semantic::ts::{Symbol, Types, TypeValue};
 use std::sync::atomic::Ordering;
 use crate::error::CustomError;
 
+//grammar(text: &str);
 grammar(text: &str);
 
 pub Program: Program = {
@@ -136,7 +136,7 @@ AssignList: Vec<Assignment> = {
 
 Assignment: Assignment = {
     <v:"Identifier"> "=" <e:Expr> => {
-        if crate::TS::IB_FLAG.load(Ordering::SeqCst) {
+        if crate::Semantic::ts::IB_FLAG.load(Ordering::SeqCst) {
             let table = SymbolTable.lock().unwrap();
             if !table.contains_key(&v) {
                 panic!("Undefined variable: {}", v);
@@ -170,7 +170,7 @@ Term: Expr = {
 Factor: Expr = {
     "(" <Expr> ")" => <>,
     <i:"Identifier"> => {
-        if crate::TS::IB_FLAG.load(Ordering::SeqCst) {
+        if crate::Semantic::ts::IB_FLAG.load(Ordering::SeqCst) {
             let table = SymbolTable.lock().unwrap();
             if !table.contains_key(&i) {
                 panic!("Undefined variable in expression: {}", i);
@@ -257,15 +257,29 @@ WriteElementList: Vec<WriteElement> = {
         es
     }
 };
+//
+//WriteElement: WriteElement = {
+//    StringLit => WriteElement::String(<>),
+//    <i:"Identifier"> => {
+//        let table = SymbolTable.lock().unwrap();
+//        if !table.contains_key(&i) {
+//            panic!("Undefined variable in WRITE statement: {}", i);
+//        }
+//        WriteElement::Variable(i)
+//    }
+//};
 
 WriteElement: WriteElement = {
     StringLit => WriteElement::String(<>),
     <i:"Identifier"> => {
         let table = SymbolTable.lock().unwrap();
-        if !table.contains_key(&i) {
-            panic!("Undefined variable in WRITE statement: {}", i);
+        match table.contains_key(&i) {
+            true => WriteElement::Variable(i),
+            false => {
+                // This will effectively cause a panic during parsing
+                panic!("Undefined variable in WRITE statement: {}", i)
+            }
         }
-        WriteElement::Variable(i)
     }
 };
 
