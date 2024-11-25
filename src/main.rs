@@ -21,6 +21,7 @@ fn main() {
     VAR_GLOBAL {
         INTEGER V, X, W;
         FLOAT Y;
+        %% CHAR Names[10] = [1, 2];
         CHAR Names[10];
         INTEGER I;
     }
@@ -29,8 +30,7 @@ fn main() {
         CONST FLOAT R = .6;
     }
     INSTRUCTION {
-        Names[0] = 10;
-        %% N = 10;
+        Names[4] = 45 + 2;
         IF (X > 0) {
             WRITE("X is positive");
         } ELSE {
@@ -42,14 +42,24 @@ fn main() {
     }
     "#;
 
-    let mut lexer = Lexer::lexer::Token::lexer(input);
-    while let Some(token) = lexer.next() {
-        match token {
-            Err(e) => panic!("{:?}", e),
-            Ok(token) => {}
-        }
-    }
+// Display of all tokens, enumerated
+//     let mut i = 0;
+//     let mut lexer = Lexer::lexer::Token::lexer(input);
+//     while let Some(token) = lexer.next() {
+//         println!("{}: {:?}", i, token);
+//         i += 1;
+//     }
 
+// Prints errors found in the lexical analysis phase
+    // let mut lexer = Lexer::lexer::Token::lexer(input);
+    // while let Some(token) = lexer.next() {
+    //     match token {
+    //         Err(e) => panic!("{:?}", e),
+    //         Ok(token) => {}
+    //     }
+    // }
+
+// Syntactic analysis result
     let lexer = Lexer::lexer::Token::lexer(input);
     let parser = grammar::ProgramParser::new();
     let result = parser.parse(input, lexer.enumerate().map(|(i, t)| t.map(|token| (i, token, i+1)).map_err(|e| e)));

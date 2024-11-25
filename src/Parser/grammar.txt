@@ -21,16 +21,16 @@
                  | <array_identifier> Assign OpenBracket <expr_list_array> CloseBracket
                  | <array_identifier> Assign OpenBracket <expr_list_array> CloseBracket Comma <var_list>
 
-    <array_identifier> -> IDENTIFIER OpenBracket Integer(SIZE) CloseBracket
+    <array_identifier> -> IDENTIFIER OpenBracket <Expression> CloseBracket
 
     <expr_list_array> -> <Expression> Comma <expr_list_array>
                        | <Expression>
-
 
     <assign_list> -> <assignment>
                    | <assignment> Comma <assign_list>
 
 	<assignment> -> IDENTIFIER Assign <Expression>
+	<array_assignment> -> IDENTIFIER OpenBracket <Expression> CloseBracket Assign <Expression>
 
 	<type> -> IntegerType
 		    | FloatType
@@ -47,7 +47,8 @@
 			       | <WriteStatement>
 
     // Assign_Instr
-	<Assign_Instr> -> Identifier Assign <Expression> Semicolon
+	<Assign_Instr> -> <assignment> Semicolon
+	                | <array_assignment> Semicolon
 
   	<Expression> -> <Expression> <Sign> <Term> | <Term>
 

@@ -41,12 +41,13 @@ pub enum Variable {
 #[derive(Debug)]
 pub struct Assignment {
     pub var: String,
+    pub index: Option<Expr>,
     pub expr: Expr,
 }
 
 impl Assignment {
-    pub fn new(var: String, expr: Expr) -> Self {
-        Assignment { var, expr }
+    pub fn new(var: String, index: Option<Expr>, expr: Expr) -> Self {
+        Assignment { var, index, expr }
     }
 }
 

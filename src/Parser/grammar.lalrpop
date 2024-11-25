@@ -1,4 +1,3 @@
-use std::str::FromStr;
 use crate::Parser::ast::*;
 use crate::Lexer::lexer::{Token, SymbolTable};
 use crate::Semantic::ts::{Symbol, Types, TypeValue};
@@ -143,8 +142,18 @@ Assignment: Assignment = {
             }
             // Could add type checking here
         }
-        Assignment::new(v, e)
-    }
+        Assignment::new(v, None, e)
+    },
+    <v:"Identifier"> "[" <index: Expr> "]" "=" <e:Expr> => {
+        if crate::Semantic::ts::IB_FLAG.load(Ordering::SeqCst) {
+            let table = SymbolTable.lock().unwrap();
+            if !table.contains_key(&v) {
+                panic!("Undefined variable: {}", v);
+            }
+            // Could add type checking here
+        }
+        Assignment::new(v, Some(index), e)
+    },
 };
 
 Instruction: Instruction = {
@@ -257,17 +266,6 @@ WriteElementList: Vec<WriteElement> = {
         es
     }
 };
-//
-//WriteElement: WriteElement = {
-//    StringLit => WriteElement::String(<>),
-//    <i:"Identifier"> => {
-//        let table = SymbolTable.lock().unwrap();
-//        if !table.contains_key(&i) {
-//            panic!("Undefined variable in WRITE statement: {}", i);
-//        }
-//        WriteElement::Variable(i)
-//    }
-//};
 
 WriteElement: WriteElement = {
     StringLit => WriteElement::String(<>),
