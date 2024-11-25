@@ -115,13 +115,13 @@ VarList: Vec<Variable> = {
 };
 
 SimpleVar: Variable = {
-    <i:"Identifier"> => Variable::Simple(i),
-    <v:"Identifier"> "=" <e:Expr> => Variable::Initialized(v, e),
+    <i:"Identifier"> => Variable::Simple(i.parse().unwrap()),
+    <v:"Identifier"> "=" <e:Expr> => Variable::Initialized(v.parse().unwrap(), e),
 };
 
 ArrayDecl: ArrayDecl = {
-    <i:"Identifier"> "[" <s:"Integer"> "]" => {
-        ArrayDecl::new(i, Expr::Literal(Literal::Integer(s as i32)))
+    <i:"Identifier"> "[" <s:Expr> "]" => {
+        ArrayDecl::new(i.parse().unwrap(), Expr::Literal(Literal::Integer(s.parse::<i32>().unwrap())))
     }
 };
 
@@ -187,13 +187,13 @@ Factor: Expr = {
         }
         Expr::Variable(i)
     },
-    <n:"Integer"> => Expr::Literal(Literal::Integer(n as i32)),
-    <f:"Float"> => Expr::Literal(Literal::Float(f as f64)),
-    <c:"Char"> => Expr::Char(c),
+    <n:"Integer"> => Expr::Literal(Literal::Integer(n.parse::<i32>().unwrap())),
+    <f:"Float"> => Expr::Literal(Literal::Float(f.parse::<f64>().unwrap())),
+    <c:"Char"> => Expr::Char(c.parse().unwrap()),
 };
 
 IfStatement: IfStmt = {
-    "IF" "(" <c:Condition> ")" "{" <t:InstructionBlock> "}" <e:ElseBlock?> => 
+    "IF" "(" <c:Condition> ")" "{" <t:InstructionBlock> "}" <e:ElseBlock?> =>
         IfStmt::new(c, t, e),
 };
 
@@ -246,7 +246,7 @@ ForLoop: ForStmt = {
 };
 
 ReadStatement: ReadStmt = {
-    "READ" "(" <i:"Identifier"> ")" ";" => {
+    "READ" "(" <i:Identifier> ")" ";" => {
         let table = SymbolTable.lock().unwrap();
         if !table.contains_key(&i) {
             panic!("Undefined variable in READ statement: {}", i);
@@ -272,7 +272,7 @@ WriteElement: WriteElement = {
     <i:"Identifier"> => {
         let table = SymbolTable.lock().unwrap();
         match table.contains_key(&i) {
-            true => WriteElement::Variable(i),
+            true => WriteElement::Variable(i.parse().unwrap()),
             false => {
                 // This will effectively cause a panic during parsing
                 panic!("Undefined variable in WRITE statement: {}", i)
@@ -285,20 +285,8 @@ Identifier: String = {
     <s:"Identifier"> => s,
 };
 
-IntegerLit: i32 = {
-    <n:"Integer"> => n as i32,
-};
-
-FloatLit: f64 = {
-    <f:"Float"> => f as f64,
-};
-
-Char: char = {
-    <c:"Char"> => c,
-};
-
 StringLit: String = {
-    <s:"StringLiteral"> => s,
+    <s:"StringLiteral"> => String::from(s),
 };
 
 extern {
