@@ -121,7 +121,7 @@ SimpleVar: Variable = {
 
 ArrayDecl: ArrayDecl = {
     <i:"Identifier"> "[" <s:Expr> "]" => {
-        ArrayDecl::new(i.parse().unwrap(), Expr::Literal(Literal::Integer(s.parse::<i32>().unwrap())))
+        ArrayDecl::new(i.parse().unwrap(), Expr::Literal(s))
     }
 };
 
@@ -187,9 +187,9 @@ Factor: Expr = {
         }
         Expr::Variable(i)
     },
-    <n:"Integer"> => Expr::Literal(Literal::Integer(n.parse::<i32>().unwrap())),
-    <f:"Float"> => Expr::Literal(Literal::Float(f.parse::<f64>().unwrap())),
-    <c:"Char"> => Expr::Char(c.parse().unwrap()),
+    <n: "Integer"> => Expr::Literal(Literal::Integer(n)),
+    <f: "Float"> => Expr::Literal(Literal::Float(f)),
+    <c: "Char"> => Expr::Char(c),
 };
 
 IfStatement: IfStmt = {

@@ -85,8 +85,8 @@ pub enum BinOp {
 // Literals (integers, floats, or characters)
 #[derive(Debug)]
 pub enum Literal {
-    Integer(i32),
-    Float(f64),
+    Integer(i16),
+    Float(f32),
     String(String),
 }
 
