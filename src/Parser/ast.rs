@@ -17,9 +17,9 @@ impl Program {
 // Declaration types: Variables, Arrays, Constants
 #[derive(Debug)]
 pub enum Declaration {
-    Variables(Type, Vec<Variable>),    // Variables with a type and a list of variables
-    Array(Type, ArrayDecl),           // Array declarations
-    Constant(Type, Vec<Assignment>),  // Constant declarations
+    Variables(Type, Vec<Variable>),     // Variables with a type and a list of variables
+    Array(Type, Vec<ArrayDecl>),        // Array declarations
+    Constant(Type, Vec<Assignment>),    // Constant declarations
 }
 
 // Types for declarations
@@ -51,17 +51,10 @@ impl Assignment {
     }
 }
 
-// Array declaration for an array with a name and size
 #[derive(Debug)]
-pub struct ArrayDecl {
-    pub name: String,
-    pub size: Expr,
-}
-
-impl ArrayDecl {
-    pub fn new(name: String, size: Expr) -> Self {
-        ArrayDecl { name, size }
-    }
+pub enum ArrayDecl {
+    Simple(String, Expr),
+    Initialized(String, Expr, Vec<Expr>),
 }
 
 // Expressions that can be literals, variables, or binary operations

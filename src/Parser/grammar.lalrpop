@@ -62,18 +62,31 @@ Declaration: Declaration = {
         }
         Declaration::Variables(t, v)
     },
-    
-    <t:Type> <a:ArrayDecl> ";" => {
-        let mut table = SymbolTable.lock().unwrap();
-        if let Some(symbol) = table.get_mut(&a.name) {
-            symbol.Type = Some(Types::Array);
-            symbol.Is_Constant = Some(false);
-            // Initialize empty array
-            symbol.Value = Some(TypeValue::Array(Vec::new()));
-        }
+
+    <t: Type> <a: ArrayDeclarationList> ";" => {
+        let rust_type = match t {
+            Type::Integer => Types::Integer,
+            Type::Float => Types::Float,
+            Type::Char => Types::Char,
+        };
+
+
+        // END
         Declaration::Array(t, a)
     },
-    
+
+// ORIGINAL:
+//    <t:Type> <a:ArrayDecl> ";" => {
+//        let mut table = SymbolTable.lock().unwrap();
+//        if let Some(symbol) = table.get_mut(&a.name) {
+//            symbol.Type = Some(Types::Array);
+//            symbol.Is_Constant = Some(false);
+//            // Initialize empty array
+//            symbol.Value = Some(TypeValue::Array(Vec::new()));
+//        }
+//        Declaration::Array(t, a)
+//    },
+//
     "CONST" <t:Type> <a:AssignList> ";" => {
         let rust_type = match t {
             Type::Integer => Types::Integer,
@@ -111,7 +124,7 @@ VarList: Vec<Variable> = {
     <v:SimpleVar> "," <mut vs:VarList> => {
         vs.insert(0, v);
         vs
-    }
+    },
 };
 
 SimpleVar: Variable = {
@@ -119,9 +132,28 @@ SimpleVar: Variable = {
     <v:"Identifier"> "=" <e:Expr> => Variable::Initialized(v.parse().unwrap(), e),
 };
 
+ArrayDeclarationList: Vec<ArrayDecl> = {
+    ArrayDecl => vec![<>],
+    <a: ArrayDecl> "," <mut as_: ArrayDeclarationList> => {
+        as_.insert(0, a);
+        as_
+    }
+};
+
 ArrayDecl: ArrayDecl = {
-    <i:"Identifier"> "[" <s:Expr> "]" => {
-        ArrayDecl::new(i.parse().unwrap(), s)
+    <i:"Identifier"> "[" <s: Expr> "]" => {
+        ArrayDecl::Simple(i, s)
+    },
+    <i:"Identifier"> "[" <s: Expr> "]" "=" "[" <v: ExpressionList> "]"=> {
+        ArrayDecl::Initialized(i, s, v)
+    },
+};
+
+ExpressionList: Vec<Expr> = {
+    Expr => vec![<>],
+    <a: Expr> "," <mut as_: ExpressionList> => {
+        as_.insert(0, a);
+        as_
     }
 };
 

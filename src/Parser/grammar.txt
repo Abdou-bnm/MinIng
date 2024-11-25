@@ -37,7 +37,6 @@
 		    | CharType
 
 	<declaration> -> <type> <var_list> Semicolon
-			       | <type>  <array_dec> Semicolon
 			       | CONST <type> <assign_list> Semicolon
 
  	<INSTRUCTION> -> <Assign_Instr>
