@@ -21,7 +21,7 @@ fn main() {
     VAR_GLOBAL {
         INTEGER V, X, W;
         FLOAT Y;
-        %% CHAR Names[10] = [1, 2];
+        CHAR Names[10] = [1, 2];
         CHAR Names[10];
         INTEGER I;
     }

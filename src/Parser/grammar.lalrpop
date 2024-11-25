@@ -70,6 +70,31 @@ Declaration: Declaration = {
             Type::Char => Types::Char,
         };
 
+        for var in &a {
+            let mut table = SymbolTable.lock().unwrap();
+            match var {
+                ArrayDecl::Simple(Identifier, Size) => {
+                    if let Some(symbol) = table.get_mut(Identifier) {
+                        symbol.Type = Some(rust_type.clone());
+                        symbol.Is_Constant = Some(false);
+                    }
+                },
+                ArrayDecl::Initialized(Identifier, Size, Value) => {
+                    if let Some(symbol) = table.get_mut(Identifier) {
+                        symbol.Type = Some(rust_type.clone());
+                        symbol.Is_Constant = Some(false);
+
+                        // Set initial value based on expression type
+                        symbol.Value = match Value {
+                            Expr::Literal(Literal::Integer(i)) => Some(TypeValue::Integer(*i as i16)),
+                            Expr::Literal(Literal::Float(f)) => Some(TypeValue::Float(*f as f32)),
+                            Expr::Char(c) => Some(TypeValue::Char(*c)),
+                            _ => None // Handle other cases appropriately
+                        };
+                    }
+                }
+            }
+        }
 
         // END
         Declaration::Array(t, a)
