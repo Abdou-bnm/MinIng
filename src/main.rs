@@ -9,10 +9,12 @@ mod Parser;
 mod Semantic;
 mod Test;
 
+use std::process::exit;
 // Import LALRPOP utilities
 use lalrpop_util;
 use lalrpop_util::lalrpop_mod;
 use logos::Logos;
+use crate::Lexer::lexer::SymbolTable;
 
 lalrpop_mod!(pub grammar, "/Parser/grammar.rs");
 
@@ -22,7 +24,6 @@ fn main() {
         INTEGER V, X, W;
         FLOAT Y;
         CHAR Names[10] = [1, 2];
-        CHAR Names[10];
         INTEGER I;
     }
     DECLARATION {
@@ -92,6 +93,16 @@ fn main() {
                 }
             }
         },
-        Err(e) => println!("Parsing error: {:?}", e),
+        Err(e) => {
+            println!("Parsing error: {:?}", e);
+            exit(1);
+        },
+    }
+
+// Full print of the symbol table
+    println!("\nSymbol Table:");
+    let ST = SymbolTable.lock().unwrap();
+    for (key, value) in ST.iter() {
+        println!("{}:\n{}", key, value);
     }
 }

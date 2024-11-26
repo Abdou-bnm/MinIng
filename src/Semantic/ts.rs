@@ -17,7 +17,6 @@ pub enum TypeValue {
     Integer(i16),
     Float(f32),
     Char(char),
-    Array(Vec<TypeValue>)
 }
 #[derive(Debug)]
 pub struct Symbol {
@@ -46,8 +45,8 @@ impl fmt::Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Identifier: {}\n\tIdentifier: \"{}\"\n\tType: {:?}\n\tConstant: {:?}\n\tAddress: {:?}\n\tValue: {:?}\n",
-            self.Identifier, self.Identifier, self.Type, self.Is_Constant, self.Address, self.Value
+            "\tIdentifier: \"{}\"\n\tType: {:?}\n\tConstant: {:?}\n\tAddress: {:?}\n\tValue: {:?}\n",
+            self.Identifier, self.Type, self.Is_Constant, self.Address, self.Value
         )
     }
 }

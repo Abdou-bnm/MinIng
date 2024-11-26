@@ -77,6 +77,7 @@ Declaration: Declaration = {
                     if let Some(symbol) = table.get_mut(Identifier) {
                         symbol.Type = Some(rust_type.clone());
                         symbol.Is_Constant = Some(false);
+                        symbol.Value = None;
                     }
                 },
                 ArrayDecl::Initialized(Identifier, Size, Value) => {
@@ -85,10 +86,10 @@ Declaration: Declaration = {
                         symbol.Is_Constant = Some(false);
 
                         // Set initial value based on expression type
-                        symbol.Value = match Value {
-                            Expr::Literal(Literal::Integer(i)) => Some(TypeValue::Integer(*i as i16)),
-                            Expr::Literal(Literal::Float(f)) => Some(TypeValue::Float(*f as f32)),
-                            Expr::Char(c) => Some(TypeValue::Char(*c)),
+                        symbol.Value = match Value[0] {
+                            Expr::Literal(Literal::Integer(i)) => Some(TypeValue::Integer(i)),
+                            Expr::Literal(Literal::Float(f)) => Some(TypeValue::Float(f)),
+                            Expr::Char(c) => Some(TypeValue::Char(c)),
                             _ => None // Handle other cases appropriately
                         };
                     }
@@ -100,18 +101,6 @@ Declaration: Declaration = {
         Declaration::Array(t, a)
     },
 
-// ORIGINAL:
-//    <t:Type> <a:ArrayDecl> ";" => {
-//        let mut table = SymbolTable.lock().unwrap();
-//        if let Some(symbol) = table.get_mut(&a.name) {
-//            symbol.Type = Some(Types::Array);
-//            symbol.Is_Constant = Some(false);
-//            // Initialize empty array
-//            symbol.Value = Some(TypeValue::Array(Vec::new()));
-//        }
-//        Declaration::Array(t, a)
-//    },
-//
     "CONST" <t:Type> <a:AssignList> ";" => {
         let rust_type = match t {
             Type::Integer => Types::Integer,
