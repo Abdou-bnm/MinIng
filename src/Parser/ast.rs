@@ -55,6 +55,7 @@ impl Assignment {
 pub enum ArrayDecl {
     Simple(String, Expr),
     Initialized(String, Expr, Vec<Expr>),
+    InitializedString(String, Expr, String),
 }
 
 // Expressions that can be literals, variables, or binary operations
@@ -62,8 +63,7 @@ pub enum ArrayDecl {
 pub enum Expr {
     BinaryOp(Box<Expr>, BinOp, Box<Expr>),   // Binary operation (e.g., a + b)
     Variable(String),                         // Variable (e.g., x)
-    Literal(Literal),                         // Numeric or string literal
-    Char(char),                               // Single character literal
+    Literal(Literal),                         // Numeric or char literal
 }
 
 // Operations for binary expressions
@@ -80,7 +80,7 @@ pub enum BinOp {
 pub enum Literal {
     Integer(i16),
     Float(f32),
-    String(String),
+    Char(char),
 }
 
 // Instruction types: Assignment, If statement, For loop, Read, Write

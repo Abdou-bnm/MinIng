@@ -2,7 +2,6 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 #![allow(nonstandard_style)]
-mod error;
 mod codegen;
 mod Lexer;
 mod Parser;
@@ -23,7 +22,9 @@ fn main() {
     VAR_GLOBAL {
         INTEGER V, X, W;
         FLOAT Y;
-        CHAR Names[10] = [1, 2];
+        CHAR Arr0[10] = "String";
+        FLOAT Arr1[2] = [1.2, .5];
+        CHAR Arr2[10] = ['S', 't', 'r', 'i', 'n', 'g'];
         INTEGER I;
     }
     DECLARATION {
@@ -31,7 +32,7 @@ fn main() {
         CONST FLOAT R = .6;
     }
     INSTRUCTION {
-        Names[4] = 45 + 2;
+        Arr0[4] = 45 + 2;
         IF (X > 0) {
             WRITE("X is positive");
         } ELSE {
@@ -52,13 +53,13 @@ fn main() {
 //     }
 
 // Prints errors found in the lexical analysis phase
-    // let mut lexer = Lexer::lexer::Token::lexer(input);
-    // while let Some(token) = lexer.next() {
-    //     match token {
-    //         Err(e) => panic!("{:?}", e),
-    //         Ok(token) => {}
-    //     }
-    // }
+//     let mut lexer = Lexer::lexer::Token::lexer(input);
+//     while let Some(token) = lexer.next() {
+//         match token {
+//             Err(e) => panic!("{:?}", e),
+//             Ok(token) => {}
+//         }
+//     }
 
 // Syntactic analysis result
     let lexer = Lexer::lexer::Token::lexer(input);

@@ -2,7 +2,7 @@ use crate::Parser::ast::*;
 use crate::Lexer::lexer::{Token, SymbolTable};
 use crate::Semantic::ts::{Symbol, Types, TypeValue};
 use std::sync::atomic::Ordering;
-use crate::error::CustomError;
+use crate::Lexer::error::CustomError;
 
 //grammar(text: &str);
 grammar(text: &str);
@@ -53,7 +53,7 @@ Declaration: Declaration = {
                         symbol.Value = match expr {
                             Expr::Literal(Literal::Integer(i)) => Some(TypeValue::Integer(*i as i16)),
                             Expr::Literal(Literal::Float(f)) => Some(TypeValue::Float(*f as f32)),
-                            Expr::Char(c) => Some(TypeValue::Char(*c)),
+                            Expr::Literal(Literal::Char(c)) => Some(TypeValue::Char(*c)),
                             _ => None // Handle other cases appropriately
                         };
                     }
@@ -89,15 +89,24 @@ Declaration: Declaration = {
                         symbol.Value = match Value[0] {
                             Expr::Literal(Literal::Integer(i)) => Some(TypeValue::Integer(i)),
                             Expr::Literal(Literal::Float(f)) => Some(TypeValue::Float(f)),
-                            Expr::Char(c) => Some(TypeValue::Char(c)),
+                            Expr::Literal(Literal::Char(c)) => Some(TypeValue::Char(c)),
                             _ => None // Handle other cases appropriately
                         };
+                    }
+                },
+
+                ArrayDecl::InitializedString(Identifier, Size, Value) => {
+                    if let Some(symbol) = table.get_mut(Identifier) {
+                        symbol.Type = Some(rust_type.clone());
+                        symbol.Is_Constant = Some(false);
+
+                        // Set initial value to first character (here it's second because first is double quote)
+                        symbol.Value = Some(TypeValue::Char(Value.chars().nth(1).unwrap()));
                     }
                 }
             }
         }
 
-        // END
         Declaration::Array(t, a)
     },
 
@@ -118,7 +127,7 @@ Declaration: Declaration = {
                 symbol.Value = match &assign.expr {
                     Expr::Literal(Literal::Integer(i)) => Some(TypeValue::Integer(*i as i16)),
                     Expr::Literal(Literal::Float(f)) => Some(TypeValue::Float(*f as f32)),
-                    Expr::Char(c) => Some(TypeValue::Char(*c)),
+                    Expr::Literal(Literal::Char(c)) => Some(TypeValue::Char(*c)),
                     _ => None // Handle other cases
                 };
             }
@@ -158,8 +167,11 @@ ArrayDecl: ArrayDecl = {
     <i:"Identifier"> "[" <s: Expr> "]" => {
         ArrayDecl::Simple(i, s)
     },
-    <i:"Identifier"> "[" <s: Expr> "]" "=" "[" <v: ExpressionList> "]"=> {
+    <i:"Identifier"> "[" <s: Expr> "]" "=" "[" <v: ExpressionList> "]" => {
         ArrayDecl::Initialized(i, s, v)
+    },
+    <i:"Identifier"> "[" <s: Expr> "]" "=" <v: StringLit> => {
+        ArrayDecl::InitializedString(i, s, v)
     },
 };
 
@@ -235,7 +247,7 @@ Factor: Expr = {
     },
     <n: "Integer"> => Expr::Literal(Literal::Integer(n)),
     <f: "Float"> => Expr::Literal(Literal::Float(f)),
-    <c: "Char"> => Expr::Char(c),
+    <c: "Char"> => Expr::Literal(Literal::Char(c)),
 };
 
 IfStatement: IfStmt = {
@@ -328,7 +340,7 @@ WriteElement: WriteElement = {
 };
 
 Identifier: String = {
-    <s:"Identifier"> => s,
+    <s:"Identifier"> => String::from(s),
 };
 
 StringLit: String = {

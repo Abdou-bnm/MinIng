@@ -7,7 +7,6 @@
 
 	<instruction_block> -> <instruction> <instruction_block> | ε
 
-
 	<var_list> -> <simple_var> | <array_var>
 
     <simple_var> -> IDENTIFIER Comma <var_list>
@@ -15,11 +14,12 @@
 		          | <assignment>
 		          | <assignment> Comma <var_list>
 
-
     <array_var> -> <array_identifier> Comma <var_list>
                  | <array_identifier> CloseBracket
                  | <array_identifier> Assign OpenBracket <expr_list_array> CloseBracket
                  | <array_identifier> Assign OpenBracket <expr_list_array> CloseBracket Comma <var_list>
+                 | <array_identifier> Assign <StringLiteral>
+                 | <array_identifier> Assign <StringLiteral> Comma <var_list>
 
     <array_identifier> -> IDENTIFIER OpenBracket <Expression> CloseBracket
 
@@ -75,15 +75,12 @@
 
 	<LogicalOperator> -> And  | Or
 
-
     // Loop
 	<loop_assign> -> Identifier Assign <Expression>
 	<ForLoop> -> For OpenParen <loop_assign> Colon <Expression> Colon <Expression> CloseParen OpenBrace <instruction_block> CloseBrace
 
-
     // Read
 	<ReadStatement> -> Read OpenParen Identifier CloseParen Semicolon
-
 
     // Write
 	<WriteStatement> -> Write OpenParen <WriteElementList> CloseParen Semicolon

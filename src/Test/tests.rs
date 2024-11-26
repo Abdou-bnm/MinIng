@@ -5,7 +5,7 @@
 mod tests {
 
     use crate::Lexer::lexer::{Keyword, Token,SymbolTable};
-    use crate::error::CustomError;
+    use crate::Lexer::error::CustomError;
     use logos::Logos;
     use crate::Parser::ast::*;
     use crate::Semantic::ts::*;
