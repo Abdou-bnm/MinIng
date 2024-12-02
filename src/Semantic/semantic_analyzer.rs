@@ -107,6 +107,25 @@ impl SemanticAnalyzer {
         }
     }
 
+    fn parse_expr(&mut self, p0: &Expr) -> Result<i16, String> {
+        todo!()
+    }
+    fn validate_array_initialization(&mut self, type_decl: &Types, declared_size: &Expr, elements: &Vec<Expr>) -> Result<(), String> {
+        let parsed_declared_size = self.parse_expr(declared_size)?;
+        if parsed_declared_size < elements.len() as i16 {
+            return Err(format!("Array overflow detected\nExpected a maximum of '{}' elements, got assigned {} elements.", parsed_declared_size, elements.len()));
+        }
+        let first_element = &elements[0];
+
+        for element in elements {
+            let value_type = self.infer_expression_type(element)?;
+            if value_type != *type_decl {
+                return Err(format!("Invalid Type for array assignment\nExpected '{:?}', got '{:?}'", type_decl, value_type));
+            }
+        }
+        Ok(())
+    }
+
     fn validate_array(&mut self, type_decl: &Types, arr: &ArrayDecl) -> Result<(), String> {
         match arr {
             ArrayDecl::Simple(name, size_expr) => {
@@ -124,7 +143,7 @@ impl SemanticAnalyzer {
             ArrayDecl::Initialized(name, size_expr, values) => {
                 let size = self.evaluate_array_size(size_expr)?;
                 // Additional type checking for initialized arrays
-                self.validate_array_initialization(type_decl, values)?;
+                self.validate_array_initialization(type_decl, size_expr, values)?;
                 let symbol = Symbol::new(
                     name.clone(),
                     Some(Types::Array(Box::new(type_decl.clone()), size)),
@@ -256,9 +275,7 @@ impl SemanticAnalyzer {
         SemanticRules::validate_condition(&if_stmt.condition, &type_check_closure)?;
 
         // Validate then block instructions
-        if let Some(then_instructions) = &if_stmt.then_block {
-            self.analyze_instructions(then_instructions)?;
-        }
+        self.analyze_instructions(&if_stmt.then_block)?;
 
         // Validate else block instructions if present
         if let Some(else_instructions) = &if_stmt.else_block {
@@ -361,20 +378,17 @@ impl SemanticAnalyzer {
 
     fn validate_read(&mut self, read_stmt: &ReadStmt) -> Result<(), String> {
         // For READ, the expression should be a variable
-        match read_stmt {
-            Expr::Variable(var) => {
-                // Check if variable exists in symbol table
-                let _ = self.symbol_table.lookup(var)
-                    .ok_or_else(|| format!("Undefined variable in READ: {}", var))?;
-
-                // Validate that the variable is not a constant
-                let symbol = self.symbol_table.lookup(var).unwrap();
-                if symbol.Is_Constant.unwrap_or(false) {
-                    return Err(format!("Cannot read into constant variable: {}", var));
+        let var = &read_stmt.variable;
+        match self.symbol_table.lookup(&var) {
+            None => Err("READ statement must have a variable as its argument".to_string()),
+            Some(x) => {
+                if x.Is_Constant.unwrap() == false {
+                    Ok(())
                 }
-                Ok(())
-            },
-            _ => Err("READ statement must have a variable as its argument".to_string())
+                else {
+                    Err("READ statement must have a variable as its argument".to_string())
+                }
+            }
         }
     }
 

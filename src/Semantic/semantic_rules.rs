@@ -1,4 +1,4 @@
-use crate::Parser::ast::Condition;
+use crate::Parser::ast::{Condition, Expr, Literal};
 use crate::Semantic::ts::{Types, TypeValue};
 use crate::Semantic::type_checker::TypeChecker;
 
@@ -41,7 +41,7 @@ impl SemanticRules {
         }
 
         // Validate array size
-        if size == 0 {
+        if size <= 0 {
             return Err(format!("Array '{}' must have a positive size", name));
         }
 
@@ -51,7 +51,7 @@ impl SemanticRules {
             _ => Err(format!("Invalid array type for '{}'", name))
         }
     }
-
+    
     pub fn validate_condition(condition: &Condition, type_check_func: &dyn Fn(&Condition) -> Result<Types, String>) -> Result<(), String> {
         match condition {
             Condition::Not(inner_condition) => {
@@ -71,7 +71,8 @@ impl SemanticRules {
                 // We expect the condition to resolve to an integer (0 or 1)
                 match condition_type {
                     Types::Integer => Ok(()),
-                    _ => Err("Condition must resolve to an integer expression".to_string())
+                    Types::Float => Ok(()),
+                    _ => Err("Condition must resolve to an integer or float expression".to_string())
                 }
             }
         }

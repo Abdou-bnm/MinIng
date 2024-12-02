@@ -5,7 +5,8 @@ pub struct TypeChecker;
 impl TypeChecker {
     pub fn check_arithmetic_compatibility(left: &Types, right: &Types) -> Result<Types, String> {
         match (left, right) {
-            (Types::Integer, Types::Integer) => Ok(Types::Integer),
+            // (Types::Integer, Types::Integer) => Ok(Types::Integer),
+            (Types::Integer | Types::Char, Types::Integer | Types::Char) => Ok(Types::Integer),
             (Types::Float, Types::Float) => Ok(Types::Float),
             _ => Err("Incompatible types for arithmetic operation".to_string())
         }
