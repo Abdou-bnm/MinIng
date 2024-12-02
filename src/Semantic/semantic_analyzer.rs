@@ -201,7 +201,7 @@ impl SemanticAnalyzer {
             .ok_or_else(|| format!("Undefined variable: {}", assignment.var))?;
 
         // Check if variable is constant
-        if symbol.Is_Constant{
+        if symbol.Is_Constant.unwrap_or(false) {
             return Err(format!("Cannot reassign constant variable: {}", assignment.var));
         }
 
@@ -369,7 +369,7 @@ impl SemanticAnalyzer {
 
                 // Validate that the variable is not a constant
                 let symbol = self.symbol_table.lookup(var).unwrap();
-                if symbol.Is_Constant {
+                if symbol.Is_Constant.unwrap_or(false) {
                     return Err(format!("Cannot read into constant variable: {}", var));
                 }
                 Ok(())
