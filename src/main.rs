@@ -70,6 +70,7 @@ fn main() {
     let lexer = Lexer::lexer::Token::lexer(input);
     let parser = grammar::ProgramParser::new();
     let result = parser.parse(input, lexer.enumerate().map(|(i, t)| t.map(|token| (i, token, i+1)).map_err(|e| e)));
+    
     // TODO: NEED TO KNOW HOW TO CLONE THE PROGRAM STRUCT TO RE-USE IT MULTIPLE TIMES
     // match result {
     //     Ok(program) => {
@@ -107,8 +108,13 @@ fn main() {
     let result = result.as_ref().unwrap();
 
 // Semantic Analysis
+//     constant re-assignment: done,
+//     Wrong Type re-assignment: done,
+//     READ & WRITE variable verification: done
+//     Array size and allocations: halted due to parse function
+    
     let mut semanticAnalyzer = SemanticAnalyzer::new();
-    let semantic_result = semanticAnalyzer.analyze(&result);
+    let semantic_result = semanticAnalyzer.analyze(result);
     match semantic_result {
         Ok(semantic) => println!("Semantic Analysis Successful!"),
         Err(msg) => eprintln!("Semantic Error: {}", msg),
