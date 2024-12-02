@@ -38,7 +38,7 @@ pub enum Variable {
 }
 
 // Assignment structure: Variable assignment to an expression
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Assignment {
     pub var: String,
     pub index: Option<Expr>,
@@ -59,7 +59,7 @@ pub enum ArrayDecl {
 }
 
 // Expressions that can be literals, variables, or binary operations
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     BinaryOp(Box<Expr>, BinOp, Box<Expr>),   // Binary operation (e.g., a + b)
     Variable(String),                         // Variable (e.g., x)
@@ -67,7 +67,7 @@ pub enum Expr {
 }
 
 // Operations for binary expressions
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum BinOp {
     Add,
     Sub,
@@ -76,7 +76,7 @@ pub enum BinOp {
 }
 
 // Literals (integers, floats, or characters)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Literal {
     Integer(i16),
     Float(f32),
@@ -84,7 +84,7 @@ pub enum Literal {
 }
 
 // Instruction types: Assignment, If statement, For loop, Read, Write
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum Instruction {
     Assign(Assignment),
     If(IfStmt),
@@ -94,7 +94,7 @@ pub enum Instruction {
 }
 
 // If statement structure
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IfStmt {
     pub condition: Condition,
     pub then_block: Vec<Instruction>,
@@ -108,7 +108,7 @@ impl IfStmt {
 }
 
 // For loop structure
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct ForStmt {
     pub init: Assignment,
     pub step: Expr,
@@ -123,7 +123,7 @@ impl ForStmt {
 }
 
 // Read statement (reads a variable)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReadStmt {
     pub variable: String,
 }
@@ -135,7 +135,7 @@ impl ReadStmt {
 }
 
 // Write statement (writes an element or expression)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WriteStmt {
     pub elements: Vec<WriteElement>,
 }
@@ -147,14 +147,14 @@ impl WriteStmt {
 }
 
 // Write elements (either a string or a variable)
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum WriteElement {
     String(String),
     Variable(String),
 }
 
 // Conditions used in If statements and loops
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Condition {
     Not(Box<Condition>),          // Negation (e.g., !condition)
     Logic(Box<Condition>, LogOp, Box<Condition>),  // Logical AND/OR (e.g., cond1 && cond2)
@@ -162,7 +162,7 @@ pub enum Condition {
 }
 
 // Basic conditions for relational operations
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BasicCond {
     pub left: Expr,
     pub operator: RelOp,
@@ -176,7 +176,7 @@ impl BasicCond {
 }
 
 // Relational operators for comparisons
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RelOp {
     Gt,  // Greater than
     Lt,  // Less than
@@ -187,7 +187,7 @@ pub enum RelOp {
 }
 
 // Logical operators for boolean operations
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LogOp {
     And, // Logical AND (&&)
     Or,  // Logical OR (||)

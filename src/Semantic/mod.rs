@@ -3,6 +3,7 @@ pub mod type_checker;
 pub mod semantic_analyzer;
 pub mod semantic_rules;
 pub mod error;
+mod semantic_analy;
 
 // Re-export key types and functions for easy access
 pub use ts::SymbolTable;

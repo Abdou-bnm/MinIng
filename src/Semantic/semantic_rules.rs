@@ -1,3 +1,4 @@
+use crate::Parser::ast::Condition;
 use crate::Semantic::ts::{Types, TypeValue};
 use crate::Semantic::type_checker::TypeChecker;
 
@@ -30,7 +31,7 @@ impl SemanticRules {
     }
 
     pub fn validate_array_declaration(
-        name: &str, 
+        name: &str,
         element_type: &Types, 
         size: usize
     ) -> Result<(), String> {
@@ -51,11 +52,28 @@ impl SemanticRules {
         }
     }
 
-    pub fn validate_condition(condition_type: &Types) -> Result<(), String> {
-        // In MinING, conditions should resolve to an integer (0 or 1)
-        match condition_type {
-            Types::Integer => Ok(()),
-            _ => Err("Condition must be an integer expression".to_string())
+    pub fn validate_condition(condition: &Condition, type_check_func: &dyn Fn(&Condition) -> Result<Types, String>) -> Result<(), String> {
+        match condition {
+            Condition::Not(inner_condition) => {
+                // Recursive validation for negated condition
+                Self::validate_condition(inner_condition, type_check_func)
+            },
+            Condition::Logic(left_cond, _, right_cond) => {
+                // Validate both sides of logical conditions
+                Self::validate_condition(left_cond, type_check_func)?;
+                Self::validate_condition(right_cond, type_check_func)?;
+                Ok(())
+            },
+            Condition::Basic(basic_cond) => {
+                // Validate basic condition by checking its resolved type
+                let condition_type = type_check_func(condition)?;
+
+                // We expect the condition to resolve to an integer (0 or 1)
+                match condition_type {
+                    Types::Integer => Ok(()),
+                    _ => Err("Condition must resolve to an integer expression".to_string())
+                }
+            }
         }
     }
 }
