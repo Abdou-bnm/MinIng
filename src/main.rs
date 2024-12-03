@@ -124,9 +124,9 @@ fn main() {
 
 // **************************************************** Symbol Table ****************************************************
 // Full print of the symbol table
-    println!("\nSymbol Table:");
-    let ST = SymbolTable.lock().unwrap();
-    for (key, value) in ST.iter() {
-        println!("{}:\n{}", key, value);
-    }
+//     println!("\nSymbol Table:");
+//     let ST = SymbolTable.lock().unwrap();
+//     for (key, value) in ST.iter() {
+//         println!("{}:\n{}", key, value);
+//     }
 }

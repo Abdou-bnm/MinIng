@@ -193,23 +193,9 @@ AssignList: Vec<Assignment> = {
 
 Assignment: Assignment = {
     <v:"Identifier"> "=" <e:Expr> => {
-        if crate::Semantic::ts::IB_FLAG.load(Ordering::SeqCst) {
-            // let table = SymbolTable.lock().unwrap();
-            // if !table.contains_key(&v) {
-            //     panic!("Undefined variable: {}", v);
-            // }
-            // Could add type checking here
-        }
         Assignment::new(v, None, e)
     },
     <v:"Identifier"> "[" <index: Expr> "]" "=" <e:Expr> => {
-        // if crate::Semantic::ts::IB_FLAG.load(Ordering::SeqCst) {
-        //     let table = SymbolTable.lock().unwrap();
-        //     if !table.contains_key(&v) {
-        //         panic!("Undefined variable: {}", v);
-        //     }
-        //     // Could add type checking here
-        // }
         Assignment::new(v, Some(index), e)
     },
 };
@@ -237,12 +223,6 @@ Term: Expr = {
 Factor: Expr = {
     "(" <Expr> ")" => <>,
     <i:"Identifier"> => {
-        // if crate::Semantic::ts::IB_FLAG.load(Ordering::SeqCst) {
-        //     let table = SymbolTable.lock().unwrap();
-        //     if !table.contains_key(&i) {
-        //         panic!("Undefined variable in expression: {}", i);
-        //     }
-        // }
         Expr::Variable(i)
     },
     <n: "Integer"> => Expr::Literal(Literal::Integer(n)),
@@ -305,10 +285,6 @@ ForLoop: ForStmt = {
 
 ReadStatement: ReadStmt = {
     "READ" "(" <i:Identifier> ")" ";" => {
-        // let table = SymbolTable.lock().unwrap();
-        // if !table.contains_key(&i) {
-        //     panic!("Undefined variable in READ statement: {}", i);
-        // }
         ReadStmt::new(i)
     }
 };
