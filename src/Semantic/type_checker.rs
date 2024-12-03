@@ -5,8 +5,8 @@ pub struct TypeChecker;
 impl TypeChecker {
     pub fn check_arithmetic_compatibility(left: &Types, right: &Types) -> Result<Types, String> {
         match (left, right) {
-            // (Types::Integer, Types::Integer) => Ok(Types::Integer),
-            (Types::Integer | Types::Char, Types::Integer | Types::Char) => Ok(Types::Integer),
+            (Types::Char, Types::Char) => Ok(Types::Char),
+            (Types::Integer, Types::Integer) => Ok(Types::Integer),
             (Types::Float, Types::Float) => Ok(Types::Float),
             _ => Err("Incompatible types for arithmetic operation".to_string())
         }
@@ -29,11 +29,11 @@ impl TypeChecker {
             TypeValue::Float(_) => Types::Float,
             TypeValue::Char(_) => Types::Char,
             TypeValue::Array(arr) if arr.iter().all(|v| matches!(v, TypeValue::Integer(_))) => 
-                Types::Array(Box::new(Types::Integer), arr.len()),
+                Types::Array(Box::new(Types::Integer), arr.len() as i16),
             TypeValue::Array(arr) if arr.iter().all(|v| matches!(v, TypeValue::Float(_))) => 
-                Types::Array(Box::new(Types::Float), arr.len()),
+                Types::Array(Box::new(Types::Float), arr.len() as i16),
             TypeValue::Array(arr) if arr.iter().all(|v| matches!(v, TypeValue::Char(_))) => 
-                Types::Array(Box::new(Types::Char), arr.len()),
+                Types::Array(Box::new(Types::Char), arr.len() as i16),
             _ => panic!("Mixed type arrays are not supported")
         }
     }

@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use crate::Semantic::ts::{Types, TypeValue, Symbol, SymbolTable};
 use crate::Semantic::type_checker::TypeChecker;
 use crate::Semantic::semantic_rules::SemanticRules;
-use crate::Parser::ast::{Program, Instruction, Expr, Declaration, Assignment, Condition, Type, IfStmt, BasicCond, RelOp, Literal, ReadStmt, WriteStmt, WriteElement, ArrayDecl};
+use crate::Parser::ast::{Program, Instruction, Expr, Declaration, Assignment, Condition, Type, IfStmt, BasicCond, RelOp, Literal, ReadStmt, WriteStmt, WriteElement, ArrayDecl, BinOp};
 
 pub struct SemanticAnalyzer {
     symbol_table: SymbolTable,
@@ -107,11 +107,65 @@ impl SemanticAnalyzer {
         }
     }
 
-    fn parse_expr(&mut self, p0: &Expr) -> Result<i16, String> {
-        todo!()
+    // Calculates the result of a binary arithmetic operation, crated it to reduce size of parse_expr function
+    fn calculate_expr(&mut self, a0: TypeValue, op: &BinOp, a1: TypeValue) -> Result<TypeValue, String> {
+        match (&a0, op, &a1) {
+            (TypeValue::Integer(i0), BinOp::Add, TypeValue::Integer(i1)) => Ok(TypeValue::Integer(*i0 + *i1)),
+            (TypeValue::Float(f0), BinOp::Add, TypeValue::Float(f1)) => Ok(TypeValue::Float(*f0 + *f1)),
+            (TypeValue::Char(c0), BinOp::Add, TypeValue::Char(c1)) => Ok(TypeValue::Char((((*c0 as u8) + (*c1 as u8)) % 0x7F) as char)),
+
+            (TypeValue::Integer(i0), BinOp::Sub, TypeValue::Integer(i1)) => Ok(TypeValue::Integer(*i0 - *i1)),
+            (TypeValue::Float(f0), BinOp::Sub, TypeValue::Float(f1)) => Ok(TypeValue::Float(*f0 - *f1)),
+            (TypeValue::Char(c0), BinOp::Sub, TypeValue::Char(c1)) => Ok(TypeValue::Char((((*c0 as u8) - (*c1 as u8)) % 0x7F) as char)),
+
+            (TypeValue::Integer(i0), BinOp::Mul, TypeValue::Integer(i1)) => Ok(TypeValue::Integer(*i0 * *i1)),
+            (TypeValue::Float(f0), BinOp::Mul, TypeValue::Float(f1)) => Ok(TypeValue::Float(*f0 * f1)),
+
+            (TypeValue::Integer(i0), BinOp::Div, TypeValue::Integer(i1)) => {
+                if *i1 == 0 {
+                    return Err("Division by zero".to_string())
+                }
+                Ok(TypeValue::Integer(i0 / *i1))
+            },
+            (TypeValue::Float(f0), BinOp::Div, TypeValue::Float(f1)) => {
+                if *f1 == 0f32 {
+                    return Err("Division by zero".to_string())
+                }
+                Ok(TypeValue::Float(f0 / f1))
+            },
+            _ => Err(format!("Invalid Expression:\n\tLeft-Hand Operator: {:?}\n\tBinary Operator: {}\n\tRight-Hand Operator: {:?}", a0, op, a1))
+        }
+    }
+
+    fn parse_expr(&mut self, p0: &Expr) -> Result<TypeValue, String> {
+        match p0 {
+            Expr::Literal(i) => match i {
+                Literal::Integer(j) => Ok(TypeValue::Integer(*j)),
+                Literal::Float(j) => Ok(TypeValue::Float(*j)),
+                Literal::Char(j) => Ok(TypeValue::Char(*j)),
+            },
+            Expr::Variable(s) => match self.symbol_table.lookup(s) {
+                Some(t) => {
+                    match &t.Value {
+                        Some(e) => Ok(e.clone()),
+                        None => Err(format!("Variable '{}' used before being Assigned", t.Identifier))
+                    }
+                },
+                None => Err(format!("Undeclared Variable: {:?}", s)),
+            },
+            Expr::BinaryOp(expr0, binOp, expr1) => {
+                let result1 = self.parse_expr(expr1)?;
+                let result0 = self.parse_expr(expr0)?;
+                self.calculate_expr(result0, binOp, result1)
+            }
+        }
     }
     fn validate_array_initialization(&mut self, type_decl: &Types, declared_size: &Expr, elements: &Vec<Expr>) -> Result<(), String> {
-        let parsed_declared_size = self.parse_expr(declared_size)?;
+        let parsed_declared_size;
+        match self.parse_expr(declared_size)? {
+            TypeValue::Integer(i) => parsed_declared_size = i,
+            _ => return Err ("Can't use a Non-Integer value as an array's size".to_string()),
+        }
         if parsed_declared_size < elements.len() as i16 {
             return Err(format!("Array overflow detected\nExpected a maximum of '{}' elements, got assigned {} elements.", parsed_declared_size, elements.len()));
         }
@@ -480,16 +534,16 @@ impl SemanticAnalyzer {
         Ok(TypeValue::Array(values?))
     }
 
-    fn evaluate_array_size(&self, size_expr: &Expr) -> Result<usize, String> {
-        match size_expr {
-            Expr::Literal(Literal::Integer(i)) => {
-                if *i <= 0 {
-                    Err("Array size must be positive".to_string())
-                } else {
-                    Ok(*i as usize)
+    fn evaluate_array_size(&mut self, size_expr: &Expr) -> Result<i16, String> {
+        let result = self.parse_expr(size_expr)?;
+        match result {
+            TypeValue::Integer(i) => {
+                if i <= 0 { 
+                    return Err("Non-Positive Array size detected.".to_string());
                 }
-            },
-            _ => Err("Array size must be a positive integer literal".to_string())
+                Ok(i)
+            }
+            _ => Err("Non-Integer Array size detected.".to_string()),
         }
     }
 }

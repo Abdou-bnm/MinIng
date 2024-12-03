@@ -33,7 +33,7 @@ impl SemanticRules {
     pub fn validate_array_declaration(
         name: &str,
         element_type: &Types, 
-        size: usize
+        size: i16
     ) -> Result<(), String> {
         // Check array name length
         if name.len() > 8 {

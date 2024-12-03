@@ -61,7 +61,7 @@ pub enum ArrayDecl {
 // Expressions that can be literals, variables, or binary operations
 #[derive(Debug, Clone)]
 pub enum Expr {
-    BinaryOp(Box<Expr>, BinOp, Box<Expr>),   // Binary operation (e.g., a + b)
+    BinaryOp(Box<Expr>, BinOp, Box<Expr>),    // Binary operation (e.g., a + b)
     Variable(String),                         // Variable (e.g., x)
     Literal(Literal),                         // Numeric or char literal
 }
@@ -73,6 +73,18 @@ pub enum BinOp {
     Sub,
     Mul,
     Div,
+}
+
+impl std::fmt::Display for BinOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let symbol = match self {
+            BinOp::Add => "+",
+            BinOp::Sub => "-",
+            BinOp::Mul => "*",
+            BinOp::Div => "/",
+        };
+        write!(f, "{}", symbol)
+    }
 }
 
 // Literals (integers, floats, or characters)

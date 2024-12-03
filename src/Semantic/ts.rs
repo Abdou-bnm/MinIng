@@ -11,7 +11,7 @@ pub enum Types {
     Integer,
     Float,
     Char,
-    Array(Box<Types>, usize), // Array with element type and size
+    Array(Box<Types>, i16), // Array with element type and size
 }
 
 #[derive(Clone, Debug, PartialEq)] // PartialEq for comparisons

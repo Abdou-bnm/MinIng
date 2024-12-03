@@ -14,7 +14,9 @@ use lalrpop_util;
 use lalrpop_util::lalrpop_mod;
 use logos::Logos;
 use crate::Lexer::lexer::SymbolTable;
+use crate::Parser::ast::BinOp;
 use crate::Semantic::semantic_analyzer::SemanticAnalyzer;
+use crate::Semantic::ts::TypeValue;
 
 lalrpop_mod!(pub grammar, "/Parser/grammar.rs");
 
@@ -24,9 +26,10 @@ fn main() {
         INTEGER V, X, W;
         FLOAT Y;
         CHAR A;
-        %%CHAR Arr0[10] = "String";
-        %%FLOAT Arr1[2] = [1.2, .5];
-        %%CHAR Arr2[10] = ['S', 't', 'r', 'i', 'n', 'g'];
+        INTEGER B = 4;
+        CHAR Arr0[10] = "String";
+        FLOAT Arr1[B / 0] = [1.2, .5];
+        CHAR Arr2[10] = ['S', 't', 'r', 'i', 'n', 'g'];
         INTEGER I;
     }
     DECLARATION {
@@ -37,7 +40,7 @@ fn main() {
         %%Arr0[4] = 45 + 2;
         Y = .2 + 1.5;
         A = 'X';
-        WRITE(Dea);
+        WRITE(Y);
         IF (X > 0) {
             WRITE("X is positive");
         } ELSE {
@@ -49,6 +52,7 @@ fn main() {
     }
     "#;
 
+// **************************************************** Lexical Analysis ****************************************************
 // Display of all tokens, enumerated
 //     let mut i = 0;
 //     let mut lexer = Lexer::lexer::Token::lexer(input);
@@ -66,64 +70,63 @@ fn main() {
 //         }
 //     }
 
-// Syntactic analysis result
+// **************************************************** Syntactic Analysis ****************************************************
     let lexer = Lexer::lexer::Token::lexer(input);
     let parser = grammar::ProgramParser::new();
     let result = parser.parse(input, lexer.enumerate().map(|(i, t)| t.map(|token| (i, token, i+1)).map_err(|e| e)));
-    
-    // TODO: NEED TO KNOW HOW TO CLONE THE PROGRAM STRUCT TO RE-USE IT MULTIPLE TIMES
-    // match result {
-    //     Ok(program) => {
-    //         println!("Program Structure:");
-    //
-    //         // Print Global Variables
-    //         if let Some(globals) = program.global {
-    //             println!("\nGlobal Variables:");
-    //             for decl in globals {
-    //                 println!("{:?}", decl);
-    //             }
-    //         }
-    //
-    //         // Print Declarations
-    //         if let Some(decls) = program.decls {
-    //             println!("\nDeclarations:");
-    //             for decl in decls {
-    //                 println!("{:?}", decl);
-    //             }
-    //         }
-    //
-    //         // Print Instructions
-    //         if let Some(instructions) = program.inst {
-    //             println!("\nInstructions:");
-    //             for inst in instructions {
-    //                 println!("{:?}", inst);
-    //             }
-    //         }
-    //     },
-    //     Err(e) => {
-    //         println!("Parsing error: {:?}", e);
-    //         exit(1);
-    //     },
-    // }
-    let result = result.as_ref().unwrap();
 
-// Semantic Analysis
+    if result.is_err() {
+        println!("Parsing error: {:?}", result.err().unwrap());
+        panic!();
+    }
+    let program = result.unwrap();
+    
+// Printing Program's Structure
+//     println!("Program Structure:");
+// 
+//     // Print Global Variables
+//     if let Some(globals) = &program.global {
+//         println!("\nGlobal Variables:");
+//         for decl in globals {
+//             println!("{:?}", decl);
+//         }
+//     }
+// 
+//     // Print Declarations
+//     if let Some(decls) = &program.decls {
+//         println!("\nDeclarations:");
+//         for decl in decls {
+//             println!("{:?}", decl);
+//         }
+//     }
+// 
+//     // Print Instructions
+//     if let Some(instructions) = &program.inst {
+//         println!("\nInstructions:");
+//         for inst in instructions {
+//             println!("{:?}", inst);
+//         }
+//     }
+
+// **************************************************** Semantic Analysis ****************************************************
 //     constant re-assignment: done,
 //     Wrong Type re-assignment: done,
 //     READ & WRITE variable verification: done
-//     Array size and allocations: halted due to parse function
-    
+//     Expression Parsing and calculating results: Done (for Ints, tested it inside array size)
+//     Array size check: Done
+//     If conditions: Not yet, PC's battery will die
     let mut semanticAnalyzer = SemanticAnalyzer::new();
-    let semantic_result = semanticAnalyzer.analyze(result);
+    let semantic_result = semanticAnalyzer.analyze(&program);
     match semantic_result {
         Ok(semantic) => println!("Semantic Analysis Successful!"),
         Err(msg) => eprintln!("Semantic Error: {}", msg),
     }
 
+// **************************************************** Symbol Table ****************************************************
 // Full print of the symbol table
-//     println!("\nSymbol Table:");
-//     let ST = SymbolTable.lock().unwrap();
-//     for (key, value) in ST.iter() {
-//         println!("{}:\n{}", key, value);
-//     }
+    println!("\nSymbol Table:");
+    let ST = SymbolTable.lock().unwrap();
+    for (key, value) in ST.iter() {
+        println!("{}:\n{}", key, value);
+    }
 }
