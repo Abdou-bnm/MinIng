@@ -3,6 +3,7 @@ use crate::Lexer::lexer::{Token, SymbolTable};
 use crate::Semantic::ts::{Symbol, Types, TypeValue};
 use std::sync::atomic::Ordering;
 use crate::Lexer::error::CustomError;
+use crate::SymbolTable;
 
 //grammar(text: &str);
 grammar(text: &str);
@@ -99,8 +100,16 @@ Declaration: Declaration = {
                     if let Some(symbol) = table.get_mut(Identifier) {
                         symbol.Type = Some(rust_type.clone());
                         symbol.Is_Constant = Some(false);
+                        let symbolTableValue;
+                        if Value.chars().count() == 0{
+                            symbolTableValue = Some(TypeValue::Char('\0'));
+                        }
+                        else {
+                            symbolTableValue = Some(TypeValue::Char(Value.chars().nth(1).unwrap()));
+                        }
+                        symbol.Value = symbolTableValue;
 
-                        // Set initial value to first character (here it's second because first is double quote)
+                        Set initial value to first character (here it's second because first is double quote)
                         symbol.Value = Some(TypeValue::Char(Value.chars().nth(1).unwrap()));
                     }
                 }

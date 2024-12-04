@@ -5,13 +5,11 @@ use crate::Semantic::semantic_rules::SemanticRules;
 use crate::Parser::ast::{Program, Instruction, Expr, Declaration, Assignment, Condition, Type, IfStmt, BasicCond, RelOp, Literal, ReadStmt, WriteStmt, WriteElement, ArrayDecl, BinOp};
 
 pub struct SemanticAnalyzer {
-    symbol_table: SymbolTable,
 }
 
 impl SemanticAnalyzer {
     pub fn new() -> Self {
         SemanticAnalyzer {
-            symbol_table: SymbolTable::new(),
         }
     }
 
@@ -179,6 +177,18 @@ impl SemanticAnalyzer {
         }
         Ok(())
     }
+    
+    fn validate_array_string_initialization(&mut self, type_decl: &Types, declared_size: &Expr, elements: &str) -> Result<(), String> {
+        let parsed_declared_size;
+        match self.parse_expr(declared_size)? {
+            TypeValue::Integer(i) => parsed_declared_size = i,
+            _ => return Err ("Can't use a Non-Integer value as an array's size".to_string()),
+        }
+        if parsed_declared_size < elements.len() as i16 {
+            return Err(format!("Array overflow detected\nExpected a maximum of '{}' elements, got assigned {} elements.", parsed_declared_size, elements.len()));
+        }
+        Ok(())   
+    }
 
     fn validate_array(&mut self, type_decl: &Types, arr: &ArrayDecl) -> Result<(), String> {
         match arr {
@@ -210,16 +220,21 @@ impl SemanticAnalyzer {
             },
             ArrayDecl::InitializedString(name, size_expr, value) => {
                 let size = self.evaluate_array_size(size_expr)?;
+                let value = &value[1..value.len() - 1];
+                self.validate_array_string_initialization(type_decl, size_expr, value)?;
+                let symbolTableValue;
+                if value.chars().count() == 0{
+                    symbolTableValue = Some(TypeValue::Char('\0'));
+                }
+                else { 
+                    symbolTableValue = Some(TypeValue::Char(value.chars().nth(0).unwrap()));
+                }
                 let symbol = Symbol::new(
                     name.clone(),
                     Some(Types::Array(Box::new(type_decl.clone()), size)),
                     Some(false),
                     None,
-                    Some(TypeValue::Array(
-                        value.chars()
-                            .map(|c| TypeValue::Char(c))
-                            .collect()
-                    ))
+                    symbolTableValue
                 );
                 self.symbol_table.insert(symbol)?;
                 SemanticRules::validate_array_declaration(name, type_decl, size)
@@ -434,13 +449,13 @@ impl SemanticAnalyzer {
         // For READ, the expression should be a variable
         let var = &read_stmt.variable;
         match self.symbol_table.lookup(&var) {
-            None => Err("READ statement must have a variable as its argument".to_string()),
+            None => Err(format!("Undeclared variable '{}' inside READ instruction.", var)),
             Some(x) => {
                 if x.Is_Constant.unwrap() == false {
                     Ok(())
                 }
                 else {
-                    Err("READ statement must have a variable as its argument".to_string())
+                    Err(format!("Cannot READ into constant '{}'.", var))
                 }
             }
         }

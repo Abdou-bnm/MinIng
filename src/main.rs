@@ -8,17 +8,23 @@ mod Parser;
 mod Semantic;
 mod Test;
 
+use std::collections::HashMap;
 use std::process::exit;
+use std::sync::Mutex;
 // Import LALRPOP utilities
 use lalrpop_util;
 use lalrpop_util::lalrpop_mod;
 use logos::Logos;
-use crate::Lexer::lexer::SymbolTable;
+use once_cell::sync::Lazy;
+// use crate::Lexer::lexer::SymbolTable;
 use crate::Parser::ast::BinOp;
 use crate::Semantic::semantic_analyzer::SemanticAnalyzer;
+use crate::Semantic::ts;
 use crate::Semantic::ts::TypeValue;
 
 lalrpop_mod!(pub grammar, "/Parser/grammar.rs");
+// pub static SymbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+pub static SymbolTable: ts::SymbolTable = ts::SymbolTable::new();
 
 fn main() {
     let input = r#"
@@ -27,8 +33,9 @@ fn main() {
         FLOAT Y;
         CHAR A;
         INTEGER B = 4;
-        CHAR Arr0[10] = "String";
-        FLOAT Arr1[B / 0] = [1.2, .5];
+        CHAR Arr0[B * 2] = "";
+        CHAR Arr3[6] = "Hello";
+        FLOAT Arr1[B] = [1.2, .5];
         CHAR Arr2[10] = ['S', 't', 'r', 'i', 'n', 'g'];
         INTEGER I;
     }
@@ -40,7 +47,6 @@ fn main() {
         %%Arr0[4] = 45 + 2;
         Y = .2 + 1.5;
         A = 'X';
-        WRITE(Y);
         IF (X > 0) {
             WRITE("X is positive");
         } ELSE {
@@ -62,24 +68,36 @@ fn main() {
 //     }
 
 // Prints errors found in the lexical analysis phase
-//     let mut lexer = Lexer::lexer::Token::lexer(input);
-//     while let Some(token) = lexer.next() {
-//         match token {
-//             Err(e) => panic!("{:?}", e),
-//             Ok(token) => {}
-//         }
-//     }
+    let mut lexer = Lexer::lexer::Token::lexer(input);
+    while let Some(token) = lexer.next() {
+        match token {
+            Err(e) => {
+                eprintln!("Lexical Error: {}", e);
+                exit(1);
+            },
+            Ok(token) => {}
+        }
+    }
+    println!("Lexical Analysis Successful.");
 
 // **************************************************** Syntactic Analysis ****************************************************
     let lexer = Lexer::lexer::Token::lexer(input);
     let parser = grammar::ProgramParser::new();
     let result = parser.parse(input, lexer.enumerate().map(|(i, t)| t.map(|token| (i, token, i+1)).map_err(|e| e)));
 
-    if result.is_err() {
-        println!("Parsing error: {:?}", result.err().unwrap());
-        panic!();
+    let program;
+    
+    match result {
+        Ok(t) => {
+            println!("Syntactic Analysis Successful.");
+            program = t;
+        },
+        Err(e) => {
+            eprintln!("Syntactic Error: {:?}", e);
+            exit(1);
+        },
     }
-    let program = result.unwrap();
+    
     
 // Printing Program's Structure
 //     println!("Program Structure:");
@@ -116,17 +134,21 @@ fn main() {
 //     Array size check: Done
 //     If conditions: Not yet, PC's battery will die
     let mut semanticAnalyzer = SemanticAnalyzer::new();
+    
     let semantic_result = semanticAnalyzer.analyze(&program);
     match semantic_result {
-        Ok(semantic) => println!("Semantic Analysis Successful!"),
-        Err(msg) => eprintln!("Semantic Error: {}", msg),
+        Ok(semantic) => println!("Semantic Analysis Successful."),
+        Err(msg) => {
+            eprintln!("Semantic Error: {}", msg);
+            exit(1);
+        },
     }
 
 // **************************************************** Symbol Table ****************************************************
 // Full print of the symbol table
-//     println!("\nSymbol Table:");
-//     let ST = SymbolTable.lock().unwrap();
-//     for (key, value) in ST.iter() {
-//         println!("{}:\n{}", key, value);
-//     }
+    println!("\nSymbol Table:");
+    let ST = SymbolTable.lock().unwrap();
+    for (key, value) in ST.iter() {
+        println!("{}:\n{}", key, value);
+    }
 }

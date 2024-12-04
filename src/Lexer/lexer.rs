@@ -10,8 +10,8 @@ use once_cell::sync::Lazy;
 use logos::Logos;
 use crate::Lexer::error::CustomError;
 use crate::Semantic::ts;
+use crate::SymbolTable;
 
-pub static SymbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 // Validation functions Copy,
 fn validate_identifier(lex: &logos::Lexer<Token>) -> Result<String, CustomError> {
