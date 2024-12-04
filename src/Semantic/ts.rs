@@ -84,7 +84,7 @@ pub fn update(symbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier:
 }
 
 // Lookup a symbol by its identifier
-pub fn lookup(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str) -> Option<&Symbol> {
+pub fn lookup<'a>(symbolTable: &'a Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str) -> Option<&'a mut Symbol> {
     symbolTable.lock().unwrap().get_mut(identifier)
 }
 
@@ -118,4 +118,3 @@ impl std::fmt::Display for Symbol {
         )
     }
 }
-

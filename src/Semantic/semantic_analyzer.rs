@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-use crate::Semantic::ts::{Types, TypeValue, Symbol, SymbolTable};
+use crate::Semantic::ts::{Types, TypeValue, Symbol};
 use crate::Semantic::type_checker::TypeChecker;
 use crate::Semantic::semantic_rules::SemanticRules;
 use crate::Parser::ast::{Program, Instruction, Expr, Declaration, Assignment, Condition, Type, IfStmt, BasicCond, RelOp, Literal, ReadStmt, WriteStmt, WriteElement, ArrayDecl, BinOp};

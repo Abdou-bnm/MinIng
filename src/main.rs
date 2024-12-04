@@ -19,7 +19,7 @@ use once_cell::sync::Lazy;
 // use crate::Lexer::lexer::SymbolTable;
 use crate::Parser::ast::BinOp;
 use crate::Semantic::semantic_analyzer::SemanticAnalyzer;
-use crate::Semantic::{ts, SymbolTable};
+use crate::Semantic::ts;
 use crate::Semantic::ts::TypeValue;
 
 lalrpop_mod!(pub grammar, "/Parser/grammar.rs");
