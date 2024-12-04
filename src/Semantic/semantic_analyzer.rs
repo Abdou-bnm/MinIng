@@ -1,18 +1,13 @@
-use std::fmt::Debug;
+use std::fmt::{format, Debug};
 use crate::Semantic::ts::*;
-use crate::Semantic::ts::{Types, TypeValue, Symbol};
 use crate::Semantic::type_checker::TypeChecker;
 use crate::Semantic::semantic_rules::SemanticRules;
 use crate::Parser::ast::{Program, Instruction, Expr, Declaration, Assignment, Condition, Type, IfStmt, BasicCond, RelOp, Literal, ReadStmt, WriteStmt, WriteElement, ArrayDecl, BinOp};
-use crate::Semantic::ts;
 use crate::SymbolTable;
 
 pub struct SemanticAnalyzer;
 impl SemanticAnalyzer {
-    pub fn new() -> Self {
-        SemanticAnalyzer {
-        }
-    }
+    pub fn new() -> Self {SemanticAnalyzer}
 
     pub fn analyze(&mut self, program: &Program) -> Result<(), String> {
         // Analyze global variables
@@ -71,14 +66,6 @@ impl SemanticAnalyzer {
     fn validate_variable(&mut self, type_decl: &Types, var: &crate::Parser::ast::Variable) -> Result<(), String> {
         match var {
             crate::Parser::ast::Variable::Simple(name) => {
-                let symbol = Symbol::new(
-                    name.clone(),
-                    Some(type_decl.clone()),
-                    Some(false),
-                    None,
-                    None
-                );
-                insert(&SymbolTable, symbol)?;
                 SemanticRules::validate_variable_declaration(
                     name,
                     type_decl,
@@ -87,15 +74,12 @@ impl SemanticAnalyzer {
                 )
             },
             crate::Parser::ast::Variable::Initialized(name, expr) => {
-                let value_type = self.infer_expression_type(expr)?;
-                let symbol = Symbol::new(
-                    name.clone(),
-                    Some(type_decl.clone()),
-                    Some(false),
-                    None,
-                    Some(self.convert_to_type_value(expr)?)
-                );
-                insert(&SymbolTable,symbol)?;
+                let value = self.parse_expr(expr)?;
+                match SymbolTable.lock().unwrap().get_mut(name) {
+                    Some(e) => e.Value = Some(value),
+                    None => return Err(format!("Syntactic Error: Undeclared variable '{}'.", name)),
+                };
+
                 SemanticRules::validate_variable_declaration(
                     name,
                     type_decl,
@@ -143,7 +127,7 @@ impl SemanticAnalyzer {
                 Literal::Float(j) => Ok(TypeValue::Float(*j)),
                 Literal::Char(j) => Ok(TypeValue::Char(*j)),
             },
-            Expr::Variable(s) => match lookup(&SymbolTable,s) {
+            Expr::Variable(s) => match SymbolTable.lock().unwrap().get(s) {
                 Some(t) => {
                     match &t.Value {
                         Some(e) => Ok(e.clone()),
@@ -195,28 +179,27 @@ impl SemanticAnalyzer {
         match arr {
             ArrayDecl::Simple(name, size_expr) => {
                 let size = self.evaluate_array_size(size_expr)?;
-                let symbol = Symbol::new(
-                    name.clone(),
-                    Some(Types::Array(Box::new(type_decl.clone()), size)),
-                    Some(false),
-                    None,
-                    None
-                );
-                insert(&SymbolTable, symbol)?;
+                match SymbolTable.lock().unwrap().get_mut(name) {
+                    Some(symbol) => {
+                        symbol.size = Some(size);
+                    },
+                    None => return Err(format!("Syntactic Error: Undeclared variable '{}'.", name)),
+                };
                 SemanticRules::validate_array_declaration(name, type_decl, size)
             },
             ArrayDecl::Initialized(name, size_expr, values) => {
                 let size = self.evaluate_array_size(size_expr)?;
                 // Additional type checking for initialized arrays
                 self.validate_array_initialization(type_decl, size_expr, values)?;
-                let symbol = Symbol::new(
-                    name.clone(),
-                    Some(Types::Array(Box::new(type_decl.clone()), size)),
-                    Some(false),
-                    None,
-                    Some(self.convert_array_to_type_value(values)?)
-                );
-                insert(&SymbolTable, symbol)?;
+                let value = self.parse_expr(&values[0])?;
+                match SymbolTable.lock().unwrap().get_mut(name) {
+                    Some(e) => {
+                        e.size = Some(size);
+                        e.Value = Some(value)
+                    },
+                    None => return Err(format!("Syntactic Error: Undeclared variable '{}'.", name)),
+                };
+
                 SemanticRules::validate_array_declaration(name, type_decl, size)
             },
             ArrayDecl::InitializedString(name, size_expr, value) => {
@@ -230,14 +213,13 @@ impl SemanticAnalyzer {
                 else { 
                     symbolTableValue = Some(TypeValue::Char(value.chars().nth(0).unwrap()));
                 }
-                let symbol = Symbol::new(
-                    name.clone(),
-                    Some(Types::Array(Box::new(type_decl.clone()), size)),
-                    Some(false),
-                    None,
-                    symbolTableValue
-                );
-                insert(&SymbolTable, symbol)?;
+                match SymbolTable.lock().unwrap().get_mut(name) {
+                    Some(e) => {
+                        e.size = Some(size);
+                        e.Value = symbolTableValue},
+                    None => return Err(format!("Syntactic Error: Undeclared variable '{}'.", name)),
+                };
+
                 SemanticRules::validate_array_declaration(name, type_decl, size)
             }
         }
@@ -250,15 +232,13 @@ impl SemanticAnalyzer {
     ) -> Result<(), String> {
         let value_type = self.infer_expression_type(&constant.expr)?;
         TypeChecker::check_assignment_compatibility(type_decl, &value_type)?;
-
-        let symbol = Symbol::new(
-            constant.var.clone(),
-            Some(type_decl.clone()),
-            Some(true),
-            None,
-            Some(self.convert_to_type_value(&constant.expr)?)
-        );
-        insert(&SymbolTable, symbol)?;
+        
+        let value = self.parse_expr(&constant.expr)?;
+        let Identifier = constant.var.clone();
+        match SymbolTable.lock().unwrap().get_mut(&Identifier) {
+            Some(e) => e.Value = Some(value),
+            None => return Err(format!("Syntactic Error: Undeclared variable '{}'.", &Identifier)),
+        };
 
         SemanticRules::validate_variable_declaration(
             &constant.var,
@@ -286,12 +266,12 @@ impl SemanticAnalyzer {
     // validate_read, validate_write...
     fn validate_assignment(&mut self, assignment: &Assignment) -> Result<(), String> {
         // Check if variable exists in symbol table
-        let symbolTable = SymbolTable.lock().unwrap();
-        let symbol = symbol2.get(&assignment.var).ok_or_else(|| format!("Undefined variable: {}", assignment.var))?;
-
+        let mut symbolTable = SymbolTable.lock().unwrap();
+        let symbol = symbolTable.get_mut(&assignment.var).ok_or_else(|| format!("Undefined variable: {}", assignment.var))?;
+        
         // Check if variable is constant
         if symbol.Is_Constant.unwrap_or(false) {
-            return Err(format!("Cannot reassign constant variable: {}", assignment.var));
+            return Err(format!("Cannot reassign constant variable '{}'.", assignment.var));
         }
 
         // Infer type of expression
@@ -299,10 +279,39 @@ impl SemanticAnalyzer {
 
         // Check type compatibility
         TypeChecker::check_assignment_compatibility(
-            symbol.Type.as_ref().ok_or_else(|| format!("No type for variable: {}", assignment.var))?,
+            symbol.Type.as_ref().ok_or_else(|| format!("No type for variable '{}'.", assignment.var))?,
             &expr_type
         )?;
-
+        match &assignment.index {
+            Some(indexExpr) => {
+                let index = self.parse_expr(&indexExpr)?;
+                match index {
+                    TypeValue::Integer(i) => {
+                        if i < 0 {
+                            return Err("Non-Positive Array size detected.".to_string());
+                        }
+                        match symbol.size {
+                            Some(size) => {
+                                if i >= size {
+                                    return Err(format!("Index out of bounds, Array of size {}, Got {}.", symbol.size.unwrap(), i));
+                                }
+                            }
+                            None => return Err(format!("Index Assignment used with Non-Array variable '{}'.", assignment.var)),
+                        }
+                    }
+                    _ => Err("Invalid Array size type.".to_string())?
+                };
+                if index == TypeValue::Integer(0) {
+                    symbol.Value = Some(self.parse_expr(&assignment.expr)?);
+                }
+                else { 
+                    // Will be used when we actually implement addresses
+                }
+            }
+            None => {
+                symbol.Value = Some(self.parse_expr(&assignment.expr)?);
+            }
+        }
         Ok(())
     }
 
@@ -380,15 +389,18 @@ impl SemanticAnalyzer {
 
     fn validate_for_loop(&mut self, for_loop: &crate::Parser::ast::ForStmt) -> Result<(), String> {
         // Validate initialization variable
-        let init_symbol = lookup(&SymbolTable,&for_loop.init.var)
-            .ok_or_else(|| format!("Undefined loop variable: {}", for_loop.init.var))?;
-
-        // Validate initialization expression type
         let init_type = self.infer_expression_type(&for_loop.init.expr)?;
-        TypeChecker::check_assignment_compatibility(
-            init_symbol.Type.as_ref().ok_or_else(|| format!("No type for loop variable: {}", for_loop.init.var))?,
-            &init_type
-        )?;
+        
+        match SymbolTable.lock().unwrap().get(&for_loop.init.var) {
+            Some(init_symbol) => {
+                TypeChecker::check_assignment_compatibility(
+                    init_symbol.Type.as_ref().ok_or_else(|| format!("No type for loop variable: {}", for_loop.init.var))?,
+                    &init_type
+                )?;
+            }
+            None => return Err(format!("Undefined loop variable: {}", for_loop.init.var)),
+        }
+        // Validate initialization expression type
 
         // Validate step type (should be same as initialization type)
         let step_type = self.infer_expression_type(&for_loop.step)?;
@@ -448,15 +460,15 @@ impl SemanticAnalyzer {
 
     fn validate_read(&mut self, read_stmt: &ReadStmt) -> Result<(), String> {
         // For READ, the expression should be a variable
-        let var = &read_stmt.variable;
-        match lookup(&SymbolTable,&var){
-            None => Err(format!("Undeclared variable '{}' inside READ instruction.", var)),
+        let Identifier = &read_stmt.variable;
+        match SymbolTable.lock().unwrap().get(Identifier){
+            None => Err(format!("Undeclared variable '{}' inside READ instruction.", Identifier)),
             Some(x) => {
                 if x.Is_Constant.unwrap() == false {
                     Ok(())
                 }
                 else {
-                    Err(format!("Cannot READ into constant '{}'.", var))
+                    Err(format!("Cannot READ into constant '{}'.", Identifier))
                 }
             }
         }
@@ -472,8 +484,7 @@ impl SemanticAnalyzer {
                 },
                 WriteElement::Variable(var) => {
                     // Check if variable exists in symbol table
-                    let _ = lookup(&SymbolTable,&var)
-                        .ok_or_else(|| format!("Undefined variable in WRITE: {}", var))?;
+                    SymbolTable.lock().unwrap().get(var).ok_or_else(|| format!("Undefined variable '{}' in WRITE.", var))?;
                 }
             }
         }
@@ -488,8 +499,7 @@ impl SemanticAnalyzer {
                 },
                 Expr::Variable(var) => {
                     // Check if variable exists in symbol table
-                    let _ = lookup(&SymbolTable,var)
-                        .ok_or_else(|| format!("Undefined variable in WRITE: {}", var))?;
+                    SymbolTable.lock().unwrap().get(var).ok_or_else(|| format!("Undefined variable '{}' in WRITE.", var))?;
                 },
                 Expr::BinaryOp(left, _, right) => {
                     // Validate that binary operations resolve to a valid type
@@ -513,9 +523,15 @@ impl SemanticAnalyzer {
                 Literal::Char(_) => Types::Char,
             }),
             Expr::Variable(var) => {
-                let symbol = lookup(&SymbolTable,var)
-                    .ok_or_else(|| format!("Undefined variable: {}", var))?;
-                symbol.Type.clone().ok_or_else(|| format!("No type for variable: {}", var))
+                match SymbolTable.lock().unwrap().get(var) {
+                    Some(symbol) => { 
+                        match symbol.Type.clone() {
+                            Some(t) => Ok(t),
+                            None => Err(format!("No type for variable '{}' in WRITE.", var))
+                        }
+                    },
+                    None => Err(format!("Undefined variable '{}'.", var)),
+                }
             },
             Expr::BinaryOp(left, _, right) => {
                 let left_type = self.infer_expression_type(left)?;
@@ -534,9 +550,15 @@ impl SemanticAnalyzer {
                 Literal::Char(c) => TypeValue::Char(*c),
             }),
             Expr::Variable(var) => {
-                let symbol = lookup(&SymbolTable,var)
-                    .ok_or_else(|| format!("Undefined variable: {}", var))?;
-                symbol.Value.clone().ok_or_else(|| format!("No value for variable: {}", var))
+                match SymbolTable.lock().unwrap().get(var) {
+                    Some(symbol) => {
+                        match symbol.Value.clone() {
+                            Some(t) => Ok(t),
+                            None => Err(format!("No value for variable'{}'.", var))
+                        }
+                    },
+                    None => Err(format!("Undefined variable '{}'.", var))
+                }
             },
             Expr::BinaryOp(_, _, _) => Err("Cannot directly convert binary operation to TypeValue".to_string()),
         }

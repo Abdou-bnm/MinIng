@@ -10,6 +10,7 @@ pub enum CustomError {
     IntegerOverflow(String),
     FloatOverflow(String),
     IdentifierTooLong(String),
+    ReDeclaredIdentifier(String),
 }
 impl fmt::Display for CustomError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -20,6 +21,7 @@ impl fmt::Display for CustomError {
             CustomError::IntegerOverflow(num) => write!(f, "Integer overflow: {}", num),
             CustomError::FloatOverflow(num) => write!(f, "Float overflow: {}", num),
             CustomError::IdentifierTooLong(id) => write!(f, "Identifier too long: {}", id),
+            CustomError::ReDeclaredIdentifier(id) => write!(f, "Identifier Already Declared: {}", id),
         }
     }
 }

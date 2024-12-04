@@ -1,9 +1,9 @@
 use crate::Parser::ast::*;
-use crate::Lexer::lexer::{Token, SymbolTable};
-use crate::Semantic::ts::{Symbol, Types, TypeValue};
-use std::sync::atomic::Ordering;
+use crate::Lexer::lexer::Token;
+use crate::Semantic::ts::*;
 use crate::Lexer::error::CustomError;
 use crate::SymbolTable;
+use std::process::exit;
 
 //grammar(text: &str);
 grammar(text: &str);
@@ -37,26 +37,23 @@ Declaration: Declaration = {
         };
         
         for var in &v {
-            let mut table = SymbolTable.lock().unwrap();
+            // let mut table = SymbolTable.lock().unwrap();
             match var {
                 Variable::Simple(name) => {
-                    if let Some(symbol) = table.get_mut(name) {
-                        symbol.Type = Some(rust_type.clone());
-                        symbol.Is_Constant = Some(false);
+                    let Identifier = name.clone();
+                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, None, None)) {
+                        Ok(t) => {},
+                        Err(s) => panic!("{}", s),
                     }
                 },
                 Variable::Initialized(name, expr) => {
-                    if let Some(symbol) = table.get_mut(name) {
-                        symbol.Type = Some(rust_type.clone());
-                        symbol.Is_Constant = Some(false);
-                        
-                        // Set initial value based on expression type
-                        symbol.Value = match expr {
-                            Expr::Literal(Literal::Integer(i)) => Some(TypeValue::Integer(*i as i16)),
-                            Expr::Literal(Literal::Float(f)) => Some(TypeValue::Float(*f as f32)),
-                            Expr::Literal(Literal::Char(c)) => Some(TypeValue::Char(*c)),
-                            _ => None // Handle other cases appropriately
-                        };
+                    let Identifier = name.clone();
+                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, None, None)) {
+                        Ok(t) => {},
+                        Err(s) => {
+                            eprintln!("Syntactic Error: {}", s);
+                            exit(1);
+                        },
                     }
                 }
             }
@@ -72,45 +69,45 @@ Declaration: Declaration = {
         };
 
         for var in &a {
-            let mut table = SymbolTable.lock().unwrap();
+            // let mut table = SymbolTable.lock().unwrap();
             match var {
                 ArrayDecl::Simple(Identifier, Size) => {
-                    if let Some(symbol) = table.get_mut(Identifier) {
-                        symbol.Type = Some(rust_type.clone());
-                        symbol.Is_Constant = Some(false);
-                        symbol.Value = None;
+                    let Identifier = Identifier.clone();
+                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, None, None)) {
+                        Ok(t) => {},
+                        Err(s) => {
+                            eprintln!("Syntactic Error: {}", s);
+                            exit(1);
+                        },
                     }
                 },
                 ArrayDecl::Initialized(Identifier, Size, Value) => {
-                    if let Some(symbol) = table.get_mut(Identifier) {
-                        symbol.Type = Some(rust_type.clone());
-                        symbol.Is_Constant = Some(false);
-
-                        // Set initial value based on expression type
-                        symbol.Value = match Value[0] {
-                            Expr::Literal(Literal::Integer(i)) => Some(TypeValue::Integer(i)),
-                            Expr::Literal(Literal::Float(f)) => Some(TypeValue::Float(f)),
-                            Expr::Literal(Literal::Char(c)) => Some(TypeValue::Char(c)),
-                            _ => None // Handle other cases appropriately
-                        };
+                    let Identifier = Identifier.clone();
+                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, None, None)) {
+                        Ok(t) => {},
+                        Err(s) => {
+                            eprintln!("Syntactic Error: {}", s);
+                            exit(1);
+                        },
                     }
                 },
 
                 ArrayDecl::InitializedString(Identifier, Size, Value) => {
-                    if let Some(symbol) = table.get_mut(Identifier) {
-                        symbol.Type = Some(rust_type.clone());
-                        symbol.Is_Constant = Some(false);
-                        let symbolTableValue;
-                        if Value.chars().count() == 0{
-                            symbolTableValue = Some(TypeValue::Char('\0'));
-                        }
-                        else {
-                            symbolTableValue = Some(TypeValue::Char(Value.chars().nth(1).unwrap()));
-                        }
-                        symbol.Value = symbolTableValue;
-
-                        Set initial value to first character (here it's second because first is double quote)
-                        symbol.Value = Some(TypeValue::Char(Value.chars().nth(1).unwrap()));
+                    let Identifier = Identifier.clone();
+                    let symbolTableValue;
+                    if Value.chars().count() == 0 {
+                        symbolTableValue = Some(TypeValue::Char('\0'));
+                    }
+                    else {
+                    // Set initial value to first character (here it's second because first is double quote)
+                        symbolTableValue = Some(TypeValue::Char(Value.chars().nth(1).unwrap()));
+                    }
+                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, symbolTableValue, None)) {
+                        Ok(t) => {},
+                        Err(s) => {
+                            eprintln!("Syntactic Error: {}", s);
+                            exit(1);
+                        },
                     }
                 }
             }
@@ -127,18 +124,13 @@ Declaration: Declaration = {
         };
         
         for assign in &a {
-            let mut table = SymbolTable.lock().unwrap();
-            if let Some(symbol) = table.get_mut(&assign.var) {
-                symbol.Type = Some(rust_type.clone());
-                symbol.Is_Constant = Some(true);
-                
-                // Set constant value based on expression type
-                symbol.Value = match &assign.expr {
-                    Expr::Literal(Literal::Integer(i)) => Some(TypeValue::Integer(*i as i16)),
-                    Expr::Literal(Literal::Float(f)) => Some(TypeValue::Float(*f as f32)),
-                    Expr::Literal(Literal::Char(c)) => Some(TypeValue::Char(*c)),
-                    _ => None // Handle other cases
-                };
+            let Identifier = assign.var.clone(); 
+            match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(true), None, None, None)) {
+                Ok(t) => {},
+                Err(s) => {
+                    eprintln!("Syntactic Error: {}", s);
+                    exit(1);
+                },
             }
         }
         Declaration::Constant(t, a)

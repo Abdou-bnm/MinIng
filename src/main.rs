@@ -19,22 +19,19 @@ use once_cell::sync::Lazy;
 // use crate::Lexer::lexer::SymbolTable;
 use crate::Parser::ast::BinOp;
 use crate::Semantic::semantic_analyzer::SemanticAnalyzer;
-use crate::Semantic::ts;
-use crate::Semantic::ts::TypeValue;
+use crate::Semantic::ts::*;
 
 lalrpop_mod!(pub grammar, "/Parser/grammar.rs");
-pub static SymbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
-// pub static symbol: Lazy<Mutex<ts::SymbolTable>> = Lazy::new(|| Mutex::new(ts::SymbolTable::new()));
-
+pub static SymbolTable: Lazy<Mutex<HashMap<String, Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 fn main() {
     let input = r#"
     VAR_GLOBAL {
-        INTEGER V, X, W;
+        INTEGER V = 0, X = 1, W = 2;
         FLOAT Y;
-        CHAR A;
+        CHAR A = '"';
         INTEGER B = 4;
-        CHAR Arr0[B * 2] = "";
+        INTEGER Arr0[7] = [1, 2, 3, 4];
         CHAR Arr3[6] = "Hello";
         FLOAT Arr1[B] = [1.2, .5];
         CHAR Arr2[10] = ['S', 't', 'r', 'i', 'n', 'g'];
@@ -45,22 +42,22 @@ fn main() {
         CONST FLOAT R = .6;
     }
     INSTRUCTION {
-        %%Arr0[4] = 45 + 2;
+        Arr0[17 - 17] = 45 + 2;
+        Arr1[0 / 5] = 3.1415;
         Y = .2 + 1.5;
-        A = 'X';
+        B = 5;
         IF (X > 0) {
             WRITE("X is positive");
-        } ELSE {
-            WRITE("x is non-positive");
+        }
+        ELSE {
+            WRITE("X is non-positive");
         }
         FOR (I = 0 : 2 : X) {
             WRITE(I);
         }
     }
     "#;
-    
-    let nn = SymbolTable.lock().unwrap();
-    
+
 // **************************************************** Lexical Analysis ****************************************************
 // Display of all tokens, enumerated
 //     let mut i = 0;
@@ -76,7 +73,7 @@ fn main() {
         match token {
             Err(e) => {
                 eprintln!("Lexical Error: {}", e);
-                exit(1);
+                // exit(1);
             },
             Ok(token) => {}
         }
@@ -89,7 +86,7 @@ fn main() {
     let result = parser.parse(input, lexer.enumerate().map(|(i, t)| t.map(|token| (i, token, i+1)).map_err(|e| e)));
 
     let program;
-    
+
     match result {
         Ok(t) => {
             println!("Syntactic Analysis Successful.");
@@ -100,7 +97,6 @@ fn main() {
             exit(1);
         },
     }
-    
     
 // Printing Program's Structure
 //     println!("Program Structure:");
@@ -137,7 +133,7 @@ fn main() {
 //     Array size check: Done
 //     If conditions: Not yet, PC's battery will die
     let mut semanticAnalyzer = SemanticAnalyzer::new();
-    
+
     let semantic_result = semanticAnalyzer.analyze(&program);
     match semantic_result {
         Ok(semantic) => println!("Semantic Analysis Successful."),
@@ -149,9 +145,5 @@ fn main() {
 
 // **************************************************** Symbol Table ****************************************************
 // Full print of the symbol table
-    println!("\nSymbol Table:");
-    let ST = SymbolTable.lock().unwrap();
-    for (key, value) in ST.iter() {
-        println!("{}:\n{}", key, value);
-    }
+//     print_table(&SymbolTable);
 }

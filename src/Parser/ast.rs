@@ -1,5 +1,3 @@
-// Define your AST structures here
-
 // Program structure that holds the global variables, declarations, and instructions
 #[derive(Debug)]
 pub struct Program {

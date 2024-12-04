@@ -3,14 +3,8 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 
-use std::collections::HashMap;
-use std::sync::atomic::Ordering;
-use std::sync::Mutex;
-use once_cell::sync::Lazy;
 use logos::Logos;
 use crate::Lexer::error::CustomError;
-use crate::Semantic::ts;
-use crate::SymbolTable;
 
 
 // Validation functions Copy,
@@ -18,12 +12,8 @@ fn validate_identifier(lex: &logos::Lexer<Token>) -> Result<String, CustomError>
     let Identifier = lex.slice().to_string();
     if Identifier.len() > 8 {
         Err(CustomError::IdentifierTooLong(Identifier))
-    } else {
-        if !ts::IB_FLAG.load(Ordering::SeqCst) {
-            let symbol = ts::Symbol::new(Identifier.to_string(), None, None, None, None);
-            SymbolTable.lock().unwrap()
-                .insert(Identifier.as_str().to_string(), symbol);
-        }
+    }
+    else { 
         Ok(Identifier)
     }
 }
@@ -44,9 +34,6 @@ fn validate_float(lex: &logos::Lexer<Token>) -> Result<f32, CustomError> {
     }
 }
 
-fn Clear_BI_Flag(lex: &logos::Lexer<Token>) {
-    ts::IB_FLAG.store(true, Ordering::SeqCst);
-}
 // Main token enum
 #[derive(Logos, Debug, PartialEq, Clone)]
 pub enum Keyword{
@@ -73,7 +60,7 @@ pub enum Token {
     VarGlobal,
     #[token("DECLARATION", priority = 5)]
     Declaration,
-    #[token("INSTRUCTION", Clear_BI_Flag, priority = 5)]
+    #[token("INSTRUCTION", priority = 5)]
     Instruction,
     #[token("CONST", priority = 5)]
     Const,
@@ -158,7 +145,7 @@ pub enum Token {
     #[regex(r"[0-9]*\.[0-9]+", validate_float)]
     Float(f32),
 
-    #[regex(r#"'[a-zA-Z]'"#, |lex| lex.slice().chars().nth(1))] // Single CHAR type
+    #[regex(r"'[^']'", |lex| lex.slice().chars().nth(1))]
     Char(char),
 
     #[regex(r#""(?:[^"\\]|\\.)*""#, |lex| lex.slice().to_string())]

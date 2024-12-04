@@ -4,10 +4,9 @@ use lazy_static::lazy_static;
 use std::sync::atomic::{AtomicBool};
 use once_cell::sync::Lazy;
 use crate::Semantic::ts;
+use crate::SymbolTable;
 
 // Global static flag (this can be adjusted or removed as needed)
-pub static IB_FLAG: AtomicBool = AtomicBool::new(false);
-
 #[derive(Clone, Debug, PartialEq)] // PartialEq for equality comparisons
 pub enum Types {
     Integer,
@@ -31,16 +30,8 @@ pub struct Symbol {
     pub Is_Constant: Option<bool>,
     pub Address: Option<usize>,
     pub Value: Option<TypeValue>,
+    pub size: Option<i16>,  // ONLY USED IN ARRAYS
 }
-
-// pub struct SymbolTable {
-//     symbols: HashMap<String, Symbol>, // Change to hold single symbols for each identifier
-//     current_address: usize,
-// }
-// 
-// lazy_static! {
-//     static ref SYMBOL_TABLE: Mutex<SymbolTable> = Mutex::new(SymbolTable::new());
-// }
 
 impl Symbol {
     pub fn new(
@@ -49,6 +40,7 @@ impl Symbol {
         Is_Constant: Option<bool>,
         Address: Option<usize>,
         Value: Option<TypeValue>,
+        size: Option<i16>,
     ) -> Self {
         Symbol {
             Identifier,
@@ -56,14 +48,10 @@ impl Symbol {
             Is_Constant,
             Address,
             Value,
+            size,
         }
     }
 }
-
-// Singleton-like access to the global symbol table
-// pub fn get_instance() -> &'static Mutex<SymbolTable> {
-//     &SYMBOL_TABLE
-// }
 
 // Insert a new symbol, allowing only one symbol per identifier
 pub fn insert(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, symbol: Symbol) -> Result<(), String> {
@@ -83,26 +71,14 @@ pub fn update(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier
     }
 }
 
-// Lookup a symbol by its identifier
-pub fn lookup<'a>(symbolTable: &'a Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str) -> Option<&'a mut Symbol> {
-    symbolTable.lock().unwrap().get_mut(identifier)
-}
-
 // Remove a symbol by its identifier
 pub fn remove(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str) -> Option<Symbol> {
     symbolTable.lock().unwrap().remove(identifier)
 }
 
-// Get the next available memory address
-// pub fn get_next_address(symbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>>) -> usize {
-//     let addr = self.current_address;
-//     self.current_address += 1;
-//     addr
-// }
-
 // Print all symbols in the table
 pub fn print_table(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>) {
-    println!("Symbol Table Contents:");
+    println!("\nSymbol Table Contents:");
     for (key, value) in symbolTable.lock().unwrap().iter() {
         println!("{}:\n{}", key, value);
     }
