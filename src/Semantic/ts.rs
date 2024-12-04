@@ -66,7 +66,7 @@ impl Symbol {
 // }
 
 // Insert a new symbol, allowing only one symbol per identifier
-pub fn insert(symbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>>, symbol: Symbol) -> Result<(), String> {
+pub fn insert(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, symbol: Symbol) -> Result<(), String> {
     if symbolTable.lock().unwrap().contains_key(&symbol.Identifier) {
         return Err(format!("Duplicate identifier '{}'", symbol.Identifier));
     }
@@ -74,7 +74,7 @@ pub fn insert(symbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>>, symbol: Sym
     Ok(())
 }
 
-pub fn update(symbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str, value: TypeValue) -> Result<(), String> {
+pub fn update(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str, value: TypeValue) -> Result<(), String> {
     if let Some(symbol) = symbolTable.lock().unwrap().get_mut(identifier) {
         symbol.Value = Some(value);
         Ok(())
@@ -89,7 +89,7 @@ pub fn lookup<'a>(symbolTable: &'a Lazy<Mutex<HashMap<String, ts::Symbol>>>, ide
 }
 
 // Remove a symbol by its identifier
-pub fn remove(symbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str) -> Option<Symbol> {
+pub fn remove(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str) -> Option<Symbol> {
     symbolTable.lock().unwrap().remove(identifier)
 }
 
@@ -101,7 +101,7 @@ pub fn remove(symbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier:
 // }
 
 // Print all symbols in the table
-pub fn print_table(symbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>>) {
+pub fn print_table(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>) {
     println!("Symbol Table Contents:");
     for (key, value) in symbolTable.lock().unwrap().iter() {
         println!("{}:\n{}", key, value);

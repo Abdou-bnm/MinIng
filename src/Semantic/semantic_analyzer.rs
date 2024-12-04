@@ -1,8 +1,10 @@
 use std::fmt::Debug;
+use crate::Semantic::ts::*;
 use crate::Semantic::ts::{Types, TypeValue, Symbol};
 use crate::Semantic::type_checker::TypeChecker;
 use crate::Semantic::semantic_rules::SemanticRules;
 use crate::Parser::ast::{Program, Instruction, Expr, Declaration, Assignment, Condition, Type, IfStmt, BasicCond, RelOp, Literal, ReadStmt, WriteStmt, WriteElement, ArrayDecl, BinOp};
+use crate::Semantic::ts;
 use crate::SymbolTable;
 
 pub struct SemanticAnalyzer;
@@ -76,7 +78,7 @@ impl SemanticAnalyzer {
                     None,
                     None
                 );
-                self.symbol_table.insert(symbol)?;
+                insert(&SymbolTable, symbol)?;
                 SemanticRules::validate_variable_declaration(
                     name,
                     type_decl,
@@ -93,7 +95,7 @@ impl SemanticAnalyzer {
                     None,
                     Some(self.convert_to_type_value(expr)?)
                 );
-                self.symbol_table.insert(symbol)?;
+                insert(&SymbolTable,symbol)?;
                 SemanticRules::validate_variable_declaration(
                     name,
                     type_decl,
@@ -141,7 +143,7 @@ impl SemanticAnalyzer {
                 Literal::Float(j) => Ok(TypeValue::Float(*j)),
                 Literal::Char(j) => Ok(TypeValue::Char(*j)),
             },
-            Expr::Variable(s) => match self.symbol_table.lookup(s) {
+            Expr::Variable(s) => match lookup(&SymbolTable,s) {
                 Some(t) => {
                     match &t.Value {
                         Some(e) => Ok(e.clone()),
@@ -200,7 +202,7 @@ impl SemanticAnalyzer {
                     None,
                     None
                 );
-                self.symbol_table.insert(symbol)?;
+                insert(&SymbolTable, symbol)?;
                 SemanticRules::validate_array_declaration(name, type_decl, size)
             },
             ArrayDecl::Initialized(name, size_expr, values) => {
@@ -214,7 +216,7 @@ impl SemanticAnalyzer {
                     None,
                     Some(self.convert_array_to_type_value(values)?)
                 );
-                self.symbol_table.insert(symbol)?;
+                insert(&SymbolTable, symbol)?;
                 SemanticRules::validate_array_declaration(name, type_decl, size)
             },
             ArrayDecl::InitializedString(name, size_expr, value) => {
@@ -235,7 +237,7 @@ impl SemanticAnalyzer {
                     None,
                     symbolTableValue
                 );
-                self.symbol_table.insert(symbol)?;
+                insert(&SymbolTable, symbol)?;
                 SemanticRules::validate_array_declaration(name, type_decl, size)
             }
         }
@@ -256,7 +258,7 @@ impl SemanticAnalyzer {
             None,
             Some(self.convert_to_type_value(&constant.expr)?)
         );
-        self.symbol_table.insert(symbol)?;
+        insert(&SymbolTable, symbol)?;
 
         SemanticRules::validate_variable_declaration(
             &constant.var,
@@ -378,7 +380,7 @@ impl SemanticAnalyzer {
 
     fn validate_for_loop(&mut self, for_loop: &crate::Parser::ast::ForStmt) -> Result<(), String> {
         // Validate initialization variable
-        let init_symbol = self.symbol_table.lookup(&for_loop.init.var)
+        let init_symbol = lookup(&SymbolTable,&for_loop.init.var)
             .ok_or_else(|| format!("Undefined loop variable: {}", for_loop.init.var))?;
 
         // Validate initialization expression type
@@ -447,7 +449,7 @@ impl SemanticAnalyzer {
     fn validate_read(&mut self, read_stmt: &ReadStmt) -> Result<(), String> {
         // For READ, the expression should be a variable
         let var = &read_stmt.variable;
-        match self.symbol_table.lookup(&var) {
+        match lookup(&SymbolTable,&var){
             None => Err(format!("Undeclared variable '{}' inside READ instruction.", var)),
             Some(x) => {
                 if x.Is_Constant.unwrap() == false {
@@ -470,7 +472,7 @@ impl SemanticAnalyzer {
                 },
                 WriteElement::Variable(var) => {
                     // Check if variable exists in symbol table
-                    let _ = self.symbol_table.lookup(var)
+                    let _ = lookup(&SymbolTable,&var)
                         .ok_or_else(|| format!("Undefined variable in WRITE: {}", var))?;
                 }
             }
@@ -486,7 +488,7 @@ impl SemanticAnalyzer {
                 },
                 Expr::Variable(var) => {
                     // Check if variable exists in symbol table
-                    let _ = self.symbol_table.lookup(var)
+                    let _ = lookup(&SymbolTable,var)
                         .ok_or_else(|| format!("Undefined variable in WRITE: {}", var))?;
                 },
                 Expr::BinaryOp(left, _, right) => {
@@ -511,7 +513,7 @@ impl SemanticAnalyzer {
                 Literal::Char(_) => Types::Char,
             }),
             Expr::Variable(var) => {
-                let symbol = self.symbol_table.lookup(var)
+                let symbol = lookup(&SymbolTable,var)
                     .ok_or_else(|| format!("Undefined variable: {}", var))?;
                 symbol.Type.clone().ok_or_else(|| format!("No type for variable: {}", var))
             },
@@ -532,7 +534,7 @@ impl SemanticAnalyzer {
                 Literal::Char(c) => TypeValue::Char(*c),
             }),
             Expr::Variable(var) => {
-                let symbol = self.symbol_table.lookup(var)
+                let symbol = lookup(&SymbolTable,var)
                     .ok_or_else(|| format!("Undefined variable: {}", var))?;
                 symbol.Value.clone().ok_or_else(|| format!("No value for variable: {}", var))
             },
