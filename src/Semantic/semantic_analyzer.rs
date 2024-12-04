@@ -3,10 +3,9 @@ use crate::Semantic::ts::{Types, TypeValue, Symbol, SymbolTable};
 use crate::Semantic::type_checker::TypeChecker;
 use crate::Semantic::semantic_rules::SemanticRules;
 use crate::Parser::ast::{Program, Instruction, Expr, Declaration, Assignment, Condition, Type, IfStmt, BasicCond, RelOp, Literal, ReadStmt, WriteStmt, WriteElement, ArrayDecl, BinOp};
+use crate::SymbolTable;
 
-pub struct SemanticAnalyzer {
-}
-
+pub struct SemanticAnalyzer;
 impl SemanticAnalyzer {
     pub fn new() -> Self {
         SemanticAnalyzer {
@@ -285,8 +284,8 @@ impl SemanticAnalyzer {
     // validate_read, validate_write...
     fn validate_assignment(&mut self, assignment: &Assignment) -> Result<(), String> {
         // Check if variable exists in symbol table
-        let symbol = self.symbol_table.lookup(&assignment.var)
-            .ok_or_else(|| format!("Undefined variable: {}", assignment.var))?;
+        let symbolTable = SymbolTable.lock().unwrap();
+        let symbol = symbol2.get(&assignment.var).ok_or_else(|| format!("Undefined variable: {}", assignment.var))?;
 
         // Check if variable is constant
         if symbol.Is_Constant.unwrap_or(false) {

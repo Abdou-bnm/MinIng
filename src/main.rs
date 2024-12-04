@@ -19,12 +19,13 @@ use once_cell::sync::Lazy;
 // use crate::Lexer::lexer::SymbolTable;
 use crate::Parser::ast::BinOp;
 use crate::Semantic::semantic_analyzer::SemanticAnalyzer;
-use crate::Semantic::ts;
+use crate::Semantic::{ts, SymbolTable};
 use crate::Semantic::ts::TypeValue;
 
 lalrpop_mod!(pub grammar, "/Parser/grammar.rs");
-// pub static SymbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
-pub static SymbolTable: ts::SymbolTable = ts::SymbolTable::new();
+pub static SymbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+// pub static symbol: Lazy<Mutex<ts::SymbolTable>> = Lazy::new(|| Mutex::new(ts::SymbolTable::new()));
+
 
 fn main() {
     let input = r#"
@@ -57,7 +58,9 @@ fn main() {
         }
     }
     "#;
-
+    
+    let nn = SymbolTable.lock().unwrap();
+    
 // **************************************************** Lexical Analysis ****************************************************
 // Display of all tokens, enumerated
 //     let mut i = 0;

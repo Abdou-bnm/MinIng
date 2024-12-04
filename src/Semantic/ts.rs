@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use lazy_static::lazy_static;
 use std::sync::atomic::{AtomicBool};
+use once_cell::sync::Lazy;
+use crate::Semantic::ts;
 
 // Global static flag (this can be adjusted or removed as needed)
 pub static IB_FLAG: AtomicBool = AtomicBool::new(false);
@@ -31,14 +33,14 @@ pub struct Symbol {
     pub Value: Option<TypeValue>,
 }
 
-pub struct SymbolTable {
-    symbols: HashMap<String, Symbol>, // Change to hold single symbols for each identifier
-    current_address: usize,
-}
-
-lazy_static! {
-    static ref SYMBOL_TABLE: Mutex<SymbolTable> = Mutex::new(SymbolTable::new());
-}
+// pub struct SymbolTable {
+//     symbols: HashMap<String, Symbol>, // Change to hold single symbols for each identifier
+//     current_address: usize,
+// }
+// 
+// lazy_static! {
+//     static ref SYMBOL_TABLE: Mutex<SymbolTable> = Mutex::new(SymbolTable::new());
+// }
 
 impl Symbol {
     pub fn new(
@@ -58,60 +60,51 @@ impl Symbol {
     }
 }
 
-impl SymbolTable {
-    pub fn new() -> Self {
-        SymbolTable {
-            symbols: HashMap::new(),
-            current_address: 0,
-        }
-    }
+// Singleton-like access to the global symbol table
+// pub fn get_instance() -> &'static Mutex<SymbolTable> {
+//     &SYMBOL_TABLE
+// }
 
-    // Singleton-like access to the global symbol table
-    pub fn get_instance() -> &'static Mutex<SymbolTable> {
-        &SYMBOL_TABLE
+// Insert a new symbol, allowing only one symbol per identifier
+pub fn insert(symbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>>, symbol: Symbol) -> Result<(), String> {
+    if symbolTable.lock().unwrap().contains_key(&symbol.Identifier) {
+        return Err(format!("Duplicate identifier '{}'", symbol.Identifier));
     }
+    symbolTable.lock().unwrap().insert(symbol.Identifier.clone(), symbol);
+    Ok(())
+}
 
-    // Insert a new symbol, allowing only one symbol per identifier
-    pub fn insert(&mut self, symbol: Symbol) -> Result<(), String> {
-        if self.symbols.contains_key(&symbol.Identifier) {
-            return Err(format!("Duplicate identifier '{}'", symbol.Identifier));
-        }
-        self.symbols.insert(symbol.Identifier.clone(), symbol);
+pub fn update(symbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str, value: TypeValue) -> Result<(), String> {
+    if let Some(symbol) = symbolTable.lock().unwrap().get_mut(identifier) {
+        symbol.Value = Some(value);
         Ok(())
+    } else {
+        Err(format!("Symbol '{}' not found in the table", identifier))
     }
+}
 
-    pub fn update(&mut self, identifier: &str, value: TypeValue) -> Result<(), String> {
-        if let Some(symbol) = self.symbols.get_mut(identifier) {
-            symbol.Value = Some(value);
-            Ok(())
-        } else {
-            Err(format!("Symbol '{}' not found in the table", identifier))
-        }
-    }
+// Lookup a symbol by its identifier
+pub fn lookup(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str) -> Option<&Symbol> {
+    symbolTable.lock().unwrap().get_mut(identifier)
+}
 
-    // Lookup a symbol by its identifier
-    pub fn lookup(&self, identifier: &str) -> Option<&Symbol> {
-        self.symbols.get(identifier)
-    }
+// Remove a symbol by its identifier
+pub fn remove(symbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str) -> Option<Symbol> {
+    symbolTable.lock().unwrap().remove(identifier)
+}
 
-    // Remove a symbol by its identifier
-    pub fn remove(&mut self, identifier: &str) -> Option<Symbol> {
-        self.symbols.remove(identifier)
-    }
+// Get the next available memory address
+// pub fn get_next_address(symbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>>) -> usize {
+//     let addr = self.current_address;
+//     self.current_address += 1;
+//     addr
+// }
 
-    // Get the next available memory address
-    pub fn get_next_address(&mut self) -> usize {
-        let addr = self.current_address;
-        self.current_address += 1;
-        addr
-    }
-
-    // Print all symbols in the table
-    pub fn print_table(&self) {
-        println!("Symbol Table Contents:");
-        for (identifier, symbol) in &self.symbols {
-            println!("{}", symbol);
-        }
+// Print all symbols in the table
+pub fn print_table(symbolTable: Lazy<Mutex<HashMap<String, ts::Symbol>>>) {
+    println!("Symbol Table Contents:");
+    for (key, value) in symbolTable.lock().unwrap().iter() {
+        println!("{}:\n{}", key, value);
     }
 }
 
