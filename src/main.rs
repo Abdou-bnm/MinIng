@@ -35,7 +35,7 @@ fn main() {
         CHAR Arr3[6] = "Hello";
         FLOAT Arr1[B] = [1.2, .5];
         CHAR Arr2[10] = ['S', 't', 'r', 'i', 'n', 'g'];
-        INTEGER I;
+        CHAR I;
     }
     DECLARATION {
         CONST INTEGER D = 5;
@@ -46,13 +46,17 @@ fn main() {
         Arr1[0 / 5] = 3.1415;
         Y = .2 + 1.5;
         B = 5;
-        IF (X > 0) {
+        IF ((A == 'B') || ((A > 'S') && (B != 15))) {
             WRITE("X is positive");
         }
         ELSE {
             WRITE("X is non-positive");
         }
-        FOR (I = 0 : 2 : X) {
+        FOR (I = 'A' : 'B' : X) {
+            WRITE(I);
+        }
+        
+        FOR (B = 6 : 12 : ) {
             WRITE(I);
         }
     }
@@ -73,7 +77,7 @@ fn main() {
         match token {
             Err(e) => {
                 eprintln!("Lexical Error: {}", e);
-                // exit(1);
+                exit(1);
             },
             Ok(token) => {}
         }

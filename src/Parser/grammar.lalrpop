@@ -252,7 +252,7 @@ OrCondition: Condition = {
 
 AndCondition: Condition = {
     NotCondition => <>,
-    <l:AndCondition> "&&" <r:NotCondition> => 
+    <l:AndCondition> "&&" <r:NotCondition> =>
         Condition::Logic(Box::new(l), LogOp::And, Box::new(r)),
 };
 

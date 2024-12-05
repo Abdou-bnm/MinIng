@@ -390,16 +390,17 @@ impl SemanticAnalyzer {
     fn validate_for_loop(&mut self, for_loop: &crate::Parser::ast::ForStmt) -> Result<(), String> {
         // Validate initialization variable
         let init_type = self.infer_expression_type(&for_loop.init.expr)?;
-        
-        match SymbolTable.lock().unwrap().get(&for_loop.init.var) {
-            Some(init_symbol) => {
-                TypeChecker::check_assignment_compatibility(
-                    init_symbol.Type.as_ref().ok_or_else(|| format!("No type for loop variable: {}", for_loop.init.var))?,
-                    &init_type
-                )?;
-            }
-            None => return Err(format!("Undefined loop variable: {}", for_loop.init.var)),
-        }
+        self.validate_assignment(&for_loop.init)?;
+        // match SymbolTable.lock().unwrap().get_mut(&for_loop.init.var) {
+        //     Some(init_symbol) => {
+        //         TypeChecker::check_assignment_compatibility(
+        //             init_symbol.Type.as_ref().ok_or_else(|| format!("No type for loop variable: {}", for_loop.init.var))?,
+        //             &init_type
+        //         )?;
+        //         init_symbol.Value = Some(self.parse_expr(&for_loop.init.expr)?)
+        //     }
+        //     None => return Err(format!("Undefined loop variable: {}", for_loop.init.var)),
+        // }
         // Validate initialization expression type
 
         // Validate step type (should be same as initialization type)
@@ -445,9 +446,9 @@ impl SemanticAnalyzer {
         // Validate condition
         // Note: for loops expect a condition expression, so we'll convert it to a Condition first
         let condition = Condition::Basic(BasicCond {
-            left: for_loop.condition.clone(),
+            left: Expr::Variable(for_loop.init.clone().var),
             operator: RelOp::Lt, // Default to less than, but this might need to be adjusted based on your language semantics
-            right: Expr::Literal(Literal::Integer(0)) // Placeholder right side
+            right: for_loop.condition.clone() // Placeholder right side
         });
 
         SemanticRules::validate_condition(&condition, &type_check_closure)?;
