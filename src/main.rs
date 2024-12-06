@@ -30,6 +30,7 @@ fn main() {
         INTEGER V = 0, X = 1, W = 2;
         FLOAT Y;
         CHAR A = '"';
+        CHAR E = '!';
         INTEGER B = 4;
         INTEGER Arr0[7] = [1, 2, 3, 4];
         CHAR Arr3[6] = "Hello";
@@ -45,18 +46,18 @@ fn main() {
         Arr0[17 - 17] = 45 + 2;
         Arr1[0 / 5] = 3.1415;
         Y = .2 + 1.5;
-        B = 5;
+        B = 4;
         IF ((A == 'B') || ((A > 'S') && (B != 15))) {
             WRITE("X is positive");
         }
         ELSE {
             WRITE("X is non-positive");
         }
-        FOR (I = 'A' : 'B' : X) {
+        FOR (I = 'A' : 'B' : Arr3[3]) {
             WRITE(I);
         }
-        
-        FOR (B = 6 : 12 : ) {
+
+        FOR (B = 6 : 12 : Arr0[2]) {
             WRITE(I);
         }
     }
@@ -149,5 +150,5 @@ fn main() {
 
 // **************************************************** Symbol Table ****************************************************
 // Full print of the symbol table
-//     print_table(&SymbolTable);
+    print_table(&SymbolTable);
 }

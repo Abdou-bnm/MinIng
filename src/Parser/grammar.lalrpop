@@ -226,6 +226,7 @@ Factor: Expr = {
     <i:"Identifier"> => {
         Expr::Variable(i)
     },
+    <i: "Identifier"> "[" <index: Expr> "]" => Expr::Array(i, Box::new(index)),
     <n: "Integer"> => Expr::Literal(Literal::Integer(n)),
     <f: "Float"> => Expr::Literal(Literal::Float(f)),
     <c: "Char"> => Expr::Literal(Literal::Char(c)),

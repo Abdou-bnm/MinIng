@@ -61,6 +61,7 @@ pub enum ArrayDecl {
 pub enum Expr {
     BinaryOp(Box<Expr>, BinOp, Box<Expr>),    // Binary operation (e.g., a + b)
     Variable(String),                         // Variable (e.g., x)
+    Array(String, Box<Expr>),
     Literal(Literal),                         // Numeric or char literal
 }
 

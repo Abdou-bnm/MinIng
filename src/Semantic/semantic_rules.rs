@@ -52,7 +52,7 @@ impl SemanticRules {
         }
     }
     
-    pub fn validate_condition(condition: &Condition, type_check_func: &dyn Fn(&Condition) -> Result<Types, String>) -> Result<(), String> {
+    pub fn validate_condition(condition: &Condition, type_check_func: &mut dyn FnMut(&Condition) -> Result<Types, String>) -> Result<(), String> {
         match condition {
             Condition::Not(inner_condition) => {
                 // Recursive validation for negated condition

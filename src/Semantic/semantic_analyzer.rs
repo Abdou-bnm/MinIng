@@ -119,6 +119,38 @@ impl SemanticAnalyzer {
             _ => Err(format!("Invalid Expression:\n\tLeft-Hand Operator: {:?}\n\tBinary Operator: {}\n\tRight-Hand Operator: {:?}", a0, op, a1))
         }
     }
+    
+    fn get_array_cell(&mut self, symbol: &Symbol, index: &Expr) -> Result<TypeValue, String> {
+        match symbol.size {
+            None => Err(format!("Index Assignment used with Non-Array variable '{}'.", symbol.Identifier)),
+            Some(size) => match self.parse_expr(index)? {
+                TypeValue::Integer(i) => {
+                    if i < 0 {
+                        return Err("Index of array can't be negative".to_string());
+                    }
+                    if i >= size {
+                        return Err(format!("Index out of bounds, Array of size {}, Got {}.", size, i));
+                    }
+                    if i == 0 {
+                        match symbol.Value.clone() {
+                            Some(value) => Ok(value),
+                            None => Err(format!("Variable '{}' used before being Assigned", symbol.Identifier))
+                        }
+                    }
+                    else {
+                        // Will be used when we actually implement addresses
+                        match symbol.Type.clone().unwrap() { 
+                            Types::Integer => Ok(TypeValue::Integer(0)),
+                            Types::Float => Ok(TypeValue::Float(0f32)),
+                            Types::Char => Ok(TypeValue::Char('!')),
+                            _ => Err(format!("Invalid type for expression, symbol in error: {}", symbol))
+                        }
+                    }
+                }
+                _ => Err("Invalid Array size type.".to_string())?
+            }
+        }
+    }
 
     fn parse_expr(&mut self, p0: &Expr) -> Result<TypeValue, String> {
         match p0 {
@@ -134,6 +166,10 @@ impl SemanticAnalyzer {
                         None => Err(format!("Variable '{}' used before being Assigned", t.Identifier))
                     }
                 },
+                None => Err(format!("Undeclared Variable: {:?}", s)),
+            },
+            Expr::Array(s, i) => match SymbolTable.lock().unwrap().get(s) {
+                Some(t) => self.get_array_cell(t, i),
                 None => Err(format!("Undeclared Variable: {:?}", s)),
             },
             Expr::BinaryOp(expr0, binOp, expr1) => {
@@ -183,7 +219,7 @@ impl SemanticAnalyzer {
                     Some(symbol) => {
                         symbol.size = Some(size);
                     },
-                    None => return Err(format!("Syntactic Error: Undeclared variable '{}'.", name)),
+                    None => return Err(format!("Undeclared variable '{}'.", name)),
                 };
                 SemanticRules::validate_array_declaration(name, type_decl, size)
             },
@@ -197,7 +233,7 @@ impl SemanticAnalyzer {
                         e.size = Some(size);
                         e.Value = Some(value)
                     },
-                    None => return Err(format!("Syntactic Error: Undeclared variable '{}'.", name)),
+                    None => return Err(format!("Undeclared variable '{}'.", name)),
                 };
 
                 SemanticRules::validate_array_declaration(name, type_decl, size)
@@ -217,7 +253,7 @@ impl SemanticAnalyzer {
                     Some(e) => {
                         e.size = Some(size);
                         e.Value = symbolTableValue},
-                    None => return Err(format!("Syntactic Error: Undeclared variable '{}'.", name)),
+                    None => return Err(format!("Undeclared variable '{}'.", name)),
                 };
 
                 SemanticRules::validate_array_declaration(name, type_decl, size)
@@ -237,7 +273,7 @@ impl SemanticAnalyzer {
         let Identifier = constant.var.clone();
         match SymbolTable.lock().unwrap().get_mut(&Identifier) {
             Some(e) => e.Value = Some(value),
-            None => return Err(format!("Syntactic Error: Undeclared variable '{}'.", &Identifier)),
+            None => return Err(format!("Undeclared variable '{}'.", &Identifier)),
         };
 
         SemanticRules::validate_variable_declaration(
@@ -317,7 +353,7 @@ impl SemanticAnalyzer {
 
     fn validate_if_statement(&mut self, if_stmt: &IfStmt) -> Result<(), String> {
         // Create a type-checking closure that can be passed to validate_condition
-        let type_check_closure = |condition: &Condition| -> Result<Types, String> {
+        let mut type_check_closure = |condition: &Condition| -> Result<Types, String> {
             match condition {
                 Condition::Not(inner_condition) => {
                     // Recursively infer type for inner condition
@@ -351,7 +387,7 @@ impl SemanticAnalyzer {
         };
 
         // Validate the condition
-        SemanticRules::validate_condition(&if_stmt.condition, &type_check_closure)?;
+        SemanticRules::validate_condition(&if_stmt.condition, &mut type_check_closure)?;
 
         // Validate then block instructions
         self.analyze_instructions(&if_stmt.then_block)?;
@@ -365,7 +401,7 @@ impl SemanticAnalyzer {
     }
 
     // Add a helper method to infer condition type
-    fn infer_condition_type(&self, condition: &Condition) -> Result<Types, String> {
+    fn infer_condition_type(&mut self, condition: &Condition) -> Result<Types, String> {
         match condition {
             Condition::Not(inner_condition) => {
                 // Recursively infer type for inner condition
@@ -390,17 +426,6 @@ impl SemanticAnalyzer {
     fn validate_for_loop(&mut self, for_loop: &crate::Parser::ast::ForStmt) -> Result<(), String> {
         // Validate initialization variable
         let init_type = self.infer_expression_type(&for_loop.init.expr)?;
-        self.validate_assignment(&for_loop.init)?;
-        // match SymbolTable.lock().unwrap().get_mut(&for_loop.init.var) {
-        //     Some(init_symbol) => {
-        //         TypeChecker::check_assignment_compatibility(
-        //             init_symbol.Type.as_ref().ok_or_else(|| format!("No type for loop variable: {}", for_loop.init.var))?,
-        //             &init_type
-        //         )?;
-        //         init_symbol.Value = Some(self.parse_expr(&for_loop.init.expr)?)
-        //     }
-        //     None => return Err(format!("Undefined loop variable: {}", for_loop.init.var)),
-        // }
         // Validate initialization expression type
 
         // Validate step type (should be same as initialization type)
@@ -410,7 +435,7 @@ impl SemanticAnalyzer {
         }
 
         // Create a type-checking closure for the condition
-        let type_check_closure = |condition: &Condition| -> Result<Types, String> {
+        let mut type_check_closure = |condition: &Condition| -> Result<Types, String> {
             match condition {
                 Condition::Not(inner_condition) => {
                     // Recursively infer type for inner condition
@@ -451,7 +476,7 @@ impl SemanticAnalyzer {
             right: for_loop.condition.clone() // Placeholder right side
         });
 
-        SemanticRules::validate_condition(&condition, &type_check_closure)?;
+        SemanticRules::validate_condition(&condition, &mut type_check_closure)?;
 
         // Validate loop body instructions
         self.analyze_instructions(&for_loop.body)?;
@@ -502,6 +527,15 @@ impl SemanticAnalyzer {
                     // Check if variable exists in symbol table
                     SymbolTable.lock().unwrap().get(var).ok_or_else(|| format!("Undefined variable '{}' in WRITE.", var))?;
                 },
+                Expr::Array(var, expr) => {
+                    return match SymbolTable.lock().unwrap().get(var) {
+                        Some(symbol) => match self.get_array_cell(symbol, expr) {
+                            Ok(t) => Ok(()),
+                            Err(msg) => Err(msg),
+                        },
+                        None => return Err(format!("Undefined variable '{}' in WRITE.", var)),
+                    }
+                }
                 Expr::BinaryOp(left, _, right) => {
                     // Validate that binary operations resolve to a valid type
                     let left_type = self.infer_expression_type(left)?;
@@ -515,7 +549,7 @@ impl SemanticAnalyzer {
         Ok(())
     }
 
-    fn infer_expression_type(&self, expr: &Expr) -> Result<Types, String> {
+    fn infer_expression_type(&mut self, expr: &Expr) -> Result<Types, String> {
         // Implement type inference for expressions
         match expr {
             Expr::Literal(lit) => Ok(match lit {
@@ -534,6 +568,15 @@ impl SemanticAnalyzer {
                     None => Err(format!("Undefined variable '{}'.", var)),
                 }
             },
+            Expr::Array(var, expr) => {
+                match SymbolTable.lock().unwrap().get(var) {
+                    Some(symbol) => match symbol.Type.clone() {
+                        Some(t) => Ok(t),
+                        None => Err(format!("No type for variable '{}' in WRITE.", var))
+                    },
+                    None => return Err(format!("Undefined variable '{}' in WRITE.", var)),
+                }
+            },
             Expr::BinaryOp(left, _, right) => {
                 let left_type = self.infer_expression_type(left)?;
                 let right_type = self.infer_expression_type(right)?;
@@ -543,7 +586,7 @@ impl SemanticAnalyzer {
     }
 
     // Helper methods for type conversion and validation
-    fn convert_to_type_value(&self, expr: &Expr) -> Result<TypeValue, String> {
+    fn convert_to_type_value(&mut self, expr: &Expr) -> Result<TypeValue, String> {
         match expr {
             Expr::Literal(lit) => Ok(match lit {
                 Literal::Integer(i) => TypeValue::Integer(*i),
@@ -561,11 +604,20 @@ impl SemanticAnalyzer {
                     None => Err(format!("Undefined variable '{}'.", var))
                 }
             },
+            Expr::Array(var, expr) => {
+                match SymbolTable.lock().unwrap().get(var) {
+                    Some(symbol) => match self.get_array_cell(symbol, expr) {
+                        Ok(t) => Ok(t),
+                        Err(msg) => Err(msg),
+                    },
+                    None => return Err(format!("Undefined variable '{}' in WRITE.", var)),
+                }
+            },
             Expr::BinaryOp(_, _, _) => Err("Cannot directly convert binary operation to TypeValue".to_string()),
         }
     }
 
-    fn convert_array_to_type_value(&self, exprs: &Vec<Expr>) -> Result<TypeValue, String> {
+    fn convert_array_to_type_value(&mut self, exprs: &Vec<Expr>) -> Result<TypeValue, String> {
         let values: Result<Vec<TypeValue>, String> = exprs
             .iter()
             .map(|expr| self.convert_to_type_value(expr))
