@@ -1,8 +1,8 @@
-use std::fmt::{format, Debug};
+use std::fmt::Debug;
 use crate::Semantic::ts::*;
 use crate::Semantic::type_checker::TypeChecker;
 use crate::Semantic::semantic_rules::SemanticRules;
-use crate::Parser::ast::{Program, Instruction, Expr, Declaration, Assignment, Condition, Type, IfStmt, BasicCond, RelOp, Literal, ReadStmt, WriteStmt, WriteElement, ArrayDecl, BinOp};
+use crate::Parser::ast::{ArrayDecl, Assignment, BasicCond, BinOp, Condition, Declaration, Expr, IfStmt, Instruction, Program, ReadStmt, RelOp, Type, TypeValue, WriteElement, WriteStmt};
 use crate::SymbolTable;
 
 pub struct SemanticAnalyzer;
@@ -76,7 +76,7 @@ impl SemanticAnalyzer {
             crate::Parser::ast::Variable::Initialized(name, expr) => {
                 let value = self.parse_expr(expr)?;
                 match SymbolTable.lock().unwrap().get_mut(name) {
-                    Some(e) => e.Value = Some(value),
+                    Some(e) => e.Value = Some(value.clone()),
                     None => return Err(format!("Syntactic Error: Undeclared variable '{}'.", name)),
                 };
 
@@ -84,7 +84,7 @@ impl SemanticAnalyzer {
                     name,
                     type_decl,
                     false,
-                    Some(&self.convert_to_type_value(expr)?)
+                    Some(&value)
                 )
             }
         }
@@ -155,9 +155,10 @@ impl SemanticAnalyzer {
     fn parse_expr(&mut self, p0: &Expr) -> Result<TypeValue, String> {
         match p0 {
             Expr::Literal(i) => match i {
-                Literal::Integer(j) => Ok(TypeValue::Integer(*j)),
-                Literal::Float(j) => Ok(TypeValue::Float(*j)),
-                Literal::Char(j) => Ok(TypeValue::Char(*j)),
+                TypeValue::Integer(j) => Ok(TypeValue::Integer(*j)),
+                TypeValue::Float(j) => Ok(TypeValue::Float(*j)),
+                TypeValue::Char(j) => Ok(TypeValue::Char(*j)),
+                TypeValue::Array(_) => Err("Cannot use array values in expression.".to_string()),
             },
             Expr::Variable(s) => match SymbolTable.lock().unwrap().get(s) {
                 Some(t) => {
@@ -272,7 +273,7 @@ impl SemanticAnalyzer {
         let value = self.parse_expr(&constant.expr)?;
         let Identifier = constant.var.clone();
         match SymbolTable.lock().unwrap().get_mut(&Identifier) {
-            Some(e) => e.Value = Some(value),
+            Some(e) => e.Value = Some(value.clone()),
             None => return Err(format!("Undeclared variable '{}'.", &Identifier)),
         };
 
@@ -280,7 +281,7 @@ impl SemanticAnalyzer {
             &constant.var,
             type_decl,
             true,
-            Some(&self.convert_to_type_value(&constant.expr)?)
+            Some(&value)
         )
     }
 
@@ -296,57 +297,62 @@ impl SemanticAnalyzer {
         }
         Ok(())
     }
+    
 
     // Implement other validation methods here:
     // validate_assignment, validate_if_statement, validate_for_loop,
     // validate_read, validate_write...
     fn validate_assignment(&mut self, assignment: &Assignment) -> Result<(), String> {
         // Check if variable exists in symbol table
-        let mut symbolTable = SymbolTable.lock().unwrap();
-        let symbol = symbolTable.get_mut(&assignment.var).ok_or_else(|| format!("Undefined variable: {}", assignment.var))?;
+        match SymbolTable.lock().unwrap().get_mut(&assignment.var) {
+            Some(symbol) => {
+                // Check if variable is constant
+                if symbol.Is_Constant.unwrap_or(false) {
+                    return Err(format!("Cannot reassign constant variable '{}'.", assignment.var));
+                }
         
-        // Check if variable is constant
-        if symbol.Is_Constant.unwrap_or(false) {
-            return Err(format!("Cannot reassign constant variable '{}'.", assignment.var));
-        }
-
-        // Infer type of expression
-        let expr_type = self.infer_expression_type(&assignment.expr)?;
-
-        // Check type compatibility
-        TypeChecker::check_assignment_compatibility(
-            symbol.Type.as_ref().ok_or_else(|| format!("No type for variable '{}'.", assignment.var))?,
-            &expr_type
-        )?;
-        match &assignment.index {
-            Some(indexExpr) => {
-                let index = self.parse_expr(&indexExpr)?;
-                match index {
-                    TypeValue::Integer(i) => {
-                        if i < 0 {
-                            return Err("Non-Positive Array size detected.".to_string());
-                        }
-                        match symbol.size {
-                            Some(size) => {
-                                if i >= size {
-                                    return Err(format!("Index out of bounds, Array of size {}, Got {}.", symbol.size.unwrap(), i));
+                // Infer type of expression
+                // let expr_type = self.infer_expression_type(&assignment.expr)?;
+                let expr_value = self.parse_expr(&assignment.expr)?;
+                
+                // Check type compatibility
+                // TypeChecker::check_assignment_compatibility(
+                //     symbol.Type.as_ref().ok_or_else(|| format!("No type for variable '{}'.", assignment.var))?,
+                //     &expr_type
+                // )?;
+                match &assignment.index {
+                    Some(indexExpr) => {
+                        let index = self.parse_expr(&indexExpr)?;
+                        match index {
+                            TypeValue::Integer(i) => {
+                                if i < 0 {
+                                    return Err("Non-Positive Array size detected.".to_string());
+                                }
+                                match symbol.size {
+                                    Some(size) => {
+                                        if i >= size {
+                                            return Err(format!("Index out of bounds, Array of size {}, Got {}.", symbol.size.unwrap(), i));
+                                        }
+                                    }
+                                    None => return Err(format!("Index Assignment used with Non-Array variable '{}'.", assignment.var)),
                                 }
                             }
-                            None => return Err(format!("Index Assignment used with Non-Array variable '{}'.", assignment.var)),
+                            _ => Err("Invalid Array size type.".to_string())?
+                        };
+                        if index == TypeValue::Integer(0) {
+                            symbol.Value = Some(self.parse_expr(&assignment.expr)?);
+                        }
+                        else { 
+                            // Will be used when we actually implement addresses
                         }
                     }
-                    _ => Err("Invalid Array size type.".to_string())?
-                };
-                if index == TypeValue::Integer(0) {
-                    symbol.Value = Some(self.parse_expr(&assignment.expr)?);
+                    None => {
+                        symbol.Value = Some(self.parse_expr(&assignment.expr)?);
+                    }
                 }
-                else { 
-                    // Will be used when we actually implement addresses
-                }
+                
             }
-            None => {
-                symbol.Value = Some(self.parse_expr(&assignment.expr)?);
-            }
+            None => return Err(format!("Undeclared variable '{}'.", assignment.var)),
         }
         Ok(())
     }
@@ -553,9 +559,10 @@ impl SemanticAnalyzer {
         // Implement type inference for expressions
         match expr {
             Expr::Literal(lit) => Ok(match lit {
-                Literal::Integer(_) => Types::Integer,
-                Literal::Float(_) => Types::Float,
-                Literal::Char(_) => Types::Char,
+                TypeValue::Integer(_) => Types::Integer,
+                TypeValue::Float(_) => Types::Float,
+                TypeValue::Char(_) => Types::Char,
+                TypeValue::Array(_) => return Err("Cannot use array values in expression.".to_string()),
             }),
             Expr::Variable(var) => {
                 match SymbolTable.lock().unwrap().get(var) {
@@ -584,47 +591,7 @@ impl SemanticAnalyzer {
             },
         }
     }
-
-    // Helper methods for type conversion and validation
-    fn convert_to_type_value(&mut self, expr: &Expr) -> Result<TypeValue, String> {
-        match expr {
-            Expr::Literal(lit) => Ok(match lit {
-                Literal::Integer(i) => TypeValue::Integer(*i),
-                Literal::Float(f) => TypeValue::Float(*f),
-                Literal::Char(c) => TypeValue::Char(*c),
-            }),
-            Expr::Variable(var) => {
-                match SymbolTable.lock().unwrap().get(var) {
-                    Some(symbol) => {
-                        match symbol.Value.clone() {
-                            Some(t) => Ok(t),
-                            None => Err(format!("No value for variable'{}'.", var))
-                        }
-                    },
-                    None => Err(format!("Undefined variable '{}'.", var))
-                }
-            },
-            Expr::Array(var, expr) => {
-                match SymbolTable.lock().unwrap().get(var) {
-                    Some(symbol) => match self.get_array_cell(symbol, expr) {
-                        Ok(t) => Ok(t),
-                        Err(msg) => Err(msg),
-                    },
-                    None => return Err(format!("Undefined variable '{}' in WRITE.", var)),
-                }
-            },
-            Expr::BinaryOp(_, _, _) => Err("Cannot directly convert binary operation to TypeValue".to_string()),
-        }
-    }
-
-    fn convert_array_to_type_value(&mut self, exprs: &Vec<Expr>) -> Result<TypeValue, String> {
-        let values: Result<Vec<TypeValue>, String> = exprs
-            .iter()
-            .map(|expr| self.convert_to_type_value(expr))
-            .collect();
-        Ok(TypeValue::Array(values?))
-    }
-
+    
     fn evaluate_array_size(&mut self, size_expr: &Expr) -> Result<i16, String> {
         let result = self.parse_expr(size_expr)?;
         match result {

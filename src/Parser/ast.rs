@@ -62,7 +62,7 @@ pub enum Expr {
     BinaryOp(Box<Expr>, BinOp, Box<Expr>),    // Binary operation (e.g., a + b)
     Variable(String),                         // Variable (e.g., x)
     Array(String, Box<Expr>),
-    Literal(Literal),                         // Numeric or char literal
+    Literal(TypeValue),                         // Numeric or char literal
 }
 
 // Operations for binary expressions
@@ -87,11 +87,12 @@ impl std::fmt::Display for BinOp {
 }
 
 // Literals (integers, floats, or characters)
-#[derive(Debug, Clone)]
-pub enum Literal {
+#[derive(Clone, Debug, PartialEq)] // PartialEq for comparisons
+pub enum TypeValue {
     Integer(i16),
     Float(f32),
     Char(char),
+    Array(Vec<TypeValue>), // Array value representation
 }
 
 // Instruction types: Assignment, If statement, For loop, Read, Write

@@ -1,4 +1,5 @@
-use crate::Semantic::ts::{Types, TypeValue};
+use crate::Parser::ast::TypeValue;
+use crate::Semantic::ts::Types;
 
 pub struct TypeChecker;
 

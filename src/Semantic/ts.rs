@@ -1,11 +1,8 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
-use lazy_static::lazy_static;
-use std::sync::atomic::{AtomicBool};
 use once_cell::sync::Lazy;
+use crate::Parser::ast::TypeValue;
 use crate::Semantic::ts;
-use crate::SymbolTable;
-
 // Global static flag (this can be adjusted or removed as needed)
 #[derive(Clone, Debug, PartialEq)] // PartialEq for equality comparisons
 pub enum Types {
@@ -13,14 +10,6 @@ pub enum Types {
     Float,
     Char,
     Array(Box<Types>, i16), // Array with element type and size
-}
-
-#[derive(Clone, Debug, PartialEq)] // PartialEq for comparisons
-pub enum TypeValue {
-    Integer(i16),
-    Float(f32),
-    Char(char),
-    Array(Vec<TypeValue>), // Array value representation
 }
 
 #[derive(Debug, Clone)]
@@ -89,8 +78,8 @@ impl std::fmt::Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "\tIdentifier: \"{}\"\n\tType: {:?}\n\tConstant: {:?}\n\tAddress: {:?}\n\tValue: {:?}\n",
-            self.Identifier, self.Type, self.Is_Constant, self.Address, self.Value
+            "\tIdentifier: \"{}\"\n\tType: {:?}\n\tSize: {:?}\n\tConstant: {:?}\n\tAddress: {:?}\n\tValue: {:?}\n",
+            self.Identifier, self.Type, self.size, self.Is_Constant, self.Address, self.Value
         )
     }
 }

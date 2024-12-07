@@ -1,5 +1,5 @@
-use crate::Parser::ast::{Condition, Expr, Literal};
-use crate::Semantic::ts::{Types, TypeValue};
+use crate::Parser::ast::{Condition, TypeValue};
+use crate::Semantic::ts::Types;
 use crate::Semantic::type_checker::TypeChecker;
 
 pub struct SemanticRules;

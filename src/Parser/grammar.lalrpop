@@ -227,9 +227,9 @@ Factor: Expr = {
         Expr::Variable(i)
     },
     <i: "Identifier"> "[" <index: Expr> "]" => Expr::Array(i, Box::new(index)),
-    <n: "Integer"> => Expr::Literal(Literal::Integer(n)),
-    <f: "Float"> => Expr::Literal(Literal::Float(f)),
-    <c: "Char"> => Expr::Literal(Literal::Char(c)),
+    <n: "Integer"> => Expr::Literal(TypeValue::Integer(n)),
+    <f: "Float"> => Expr::Literal(TypeValue::Float(f)),
+    <c: "Char"> => Expr::Literal(TypeValue::Char(c)),
 };
 
 IfStatement: IfStmt = {
