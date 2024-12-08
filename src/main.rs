@@ -28,26 +28,23 @@ fn main() {
     let input = r#"
     VAR_GLOBAL {
         INTEGER V = 0, X = 1, W = 2;
-        FLOAT Y;
-        CHAR E = '!';
-        INTEGER B = 4;
-        INTEGER C = B + 4,
-                A = B + C + 2;
-        INTEGER Arr0[7] = [1, 2, 3, 4];
-        CHAR Arr3[6] = "Hello";
-        FLOAT Arr1[B] = [1.2, .5];
-        CHAR Arr2[10] = ['S', 't', 'r', 'i', 'n', 'g'];
-        CHAR I = 'X';
+        %% FLOAT Y;
+        %% CHAR E = '!';
+        %% INTEGER Arr0[7] = [1, 2, 3, 4];
+        %% CHAR Arr3[6] = "Hello";
+        %% FLOAT Arr1[B] = [1.2, .5];
+        %% CHAR Arr2[10] = ['S', 't', 'r', 'i', 'n', 'g'];
+         CHAR I = 'X';
     }
     DECLARATION {
-        CONST INTEGER D = 5;
-        CONST FLOAT R = .6;
+        INTEGER B = 4 + 7;
+        %% INTEGER C = B + 4,
+                %% A = B + C + 2;
+        %% CONST INTEGER D = 5;
+        %% CONST FLOAT R = .6;
     }
     INSTRUCTION {
-        Arr0[17 - 17] = 45 + 2;
-        Arr1[0 / 5] = 3.1415;
-        Y = .2 + 1.5;
-        B = 4;
+        B = 4 + 7;
         IF ((A == 12) || ((A > 10) && (B != 15))) {
             WRITE("X is positive");
         }

@@ -21,7 +21,6 @@ pub struct Symbol {
     pub Value: Option<TypeValue>,
     pub size: Option<i16>,  // ONLY USED IN ARRAYS
 }
-
 impl Symbol {
     pub fn new(
         Identifier: String,

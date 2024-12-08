@@ -1,4 +1,6 @@
+use std::collections::HashMap;
 use std::fmt::Debug;
+use std::sync::{MutexGuard, TryLockResult};
 use crate::Semantic::ts::*;
 use crate::Semantic::type_checker::TypeChecker;
 use crate::Semantic::semantic_rules::SemanticRules;
@@ -153,6 +155,14 @@ impl SemanticAnalyzer {
     }
 
     fn parse_expr(&mut self, p0: &Expr) -> Result<TypeValue, String> {
+        println!("{:?}", p0);
+        // let symbol_table = SymbolTable.lock().unwrap();
+        match  SymbolTable.try_lock() {
+            Ok(_) => {println!(
+                "Success"
+            )}
+            Err(e) => {println!("{:?}", e); return Err(format!("Syntactic Error: {}", e));}
+        }
         match p0 {
             Expr::Literal(i) => match i {
                 TypeValue::Integer(j) => Ok(TypeValue::Integer(*j)),
@@ -169,6 +179,7 @@ impl SemanticAnalyzer {
                 },
                 None => Err(format!("Undeclared Variable: {:?}", s)),
             },
+
             Expr::Array(s, i) => match SymbolTable.lock().unwrap().get(s) {
                 Some(t) => self.get_array_cell(t, i),
                 None => Err(format!("Undeclared Variable: {:?}", s)),
@@ -304,55 +315,68 @@ impl SemanticAnalyzer {
     // validate_read, validate_write...
     fn validate_assignment(&mut self, assignment: &Assignment) -> Result<(), String> {
         // Check if variable exists in symbol table
-        match SymbolTable.lock().unwrap().get_mut(&assignment.var) {
-            Some(symbol) => {
-                // Check if variable is constant
-                if symbol.Is_Constant.unwrap_or(false) {
-                    return Err(format!("Cannot reassign constant variable '{}'.", assignment.var));
-                }
-        
-                // Infer type of expression
-                // let expr_type = self.infer_expression_type(&assignment.expr)?;
-                let expr_value = self.parse_expr(&assignment.expr)?;
-                
-                // Check type compatibility
-                // TypeChecker::check_assignment_compatibility(
-                //     symbol.Type.as_ref().ok_or_else(|| format!("No type for variable '{}'.", assignment.var))?,
-                //     &expr_type
-                // )?;
-                match &assignment.index {
-                    Some(indexExpr) => {
-                        let index = self.parse_expr(&indexExpr)?;
-                        match index {
-                            TypeValue::Integer(i) => {
-                                if i < 0 {
-                                    return Err("Non-Positive Array size detected.".to_string());
-                                }
-                                match symbol.size {
-                                    Some(size) => {
-                                        if i >= size {
-                                            return Err(format!("Index out of bounds, Array of size {}, Got {}.", symbol.size.unwrap(), i));
-                                        }
-                                    }
-                                    None => return Err(format!("Index Assignment used with Non-Array variable '{}'.", assignment.var)),
-                                }
-                            }
-                            _ => Err("Invalid Array size type.".to_string())?
-                        };
-                        if index == TypeValue::Integer(0) {
-                            symbol.Value = Some(self.parse_expr(&assignment.expr)?);
-                        }
-                        else { 
-                            // Will be used when we actually implement addresses
-                        }
-                    }
-                    None => {
-                        symbol.Value = Some(self.parse_expr(&assignment.expr)?);
-                    }
-                }
-                
-            }
+        // match SymbolTable.lock().unwrap().get_mut(&assignment.var) {
+        //     Some(symbol) => {
+        //         // Check if variable is constant
+        //         if symbol.Is_Constant.unwrap_or(false) {
+        //             return Err(format!("Cannot reassign constant variable '{}'.", assignment.var));
+        //         }
+        //
+        //         // Infer type of expression
+        //         // let expr_type = self.infer_expression_type(&assignment.expr)?;
+        //         let expr_value = self.parse_expr(&assignment.expr)?;
+        //
+        //         // Check type compatibility
+        //         // TypeChecker::check_assignment_compatibility(
+        //         //     symbol.Type.as_ref().ok_or_else(|| format!("No type for variable '{}'.", assignment.var))?,
+        //         //     &expr_type
+        //         // )?;
+        //         match &assignment.index {
+        //             Some(indexExpr) => {
+        //                 let index = self.parse_expr(&indexExpr)?;
+        //                 match index {
+        //                     TypeValue::Integer(i) => {
+        //                         if i < 0 {
+        //                             return Err("Non-Positive Array size detected.".to_string());
+        //                         }
+        //                         match symbol.size {
+        //                             Some(size) => {
+        //                                 if i >= size {
+        //                                     return Err(format!("Index out of bounds, Array of size {}, Got {}.", symbol.size.unwrap(), i));
+        //                                 }
+        //                             }
+        //                             None => return Err(format!("Index Assignment used with Non-Array variable '{}'.", assignment.var)),
+        //                         }
+        //                     }
+        //                     _ => Err("Invalid Array size type.".to_string())?
+        //                 };
+        //                 if index == TypeValue::Integer(0) {
+        //                     symbol.Value = Some(self.parse_expr(&assignment.expr)?);
+        //                 }
+        //                 else {
+        //                     // Will be used when we actually implement addresses
+        //                 }
+        //             }
+        //             None => {
+        //                 println!("Entered None index");
+        //                 symbol.Value = Some(self.parse_expr(&assignment.expr)?);
+        //             }
+        //         }
+        //
+        //     }
+        //     None => return Err(format!("Undeclared variable '{}'.", assignment.var)),
+        // }
+        let symbol_table = SymbolTable.lock().unwrap().get_mut(&assignment.var);
+        match symbol_table {
             None => return Err(format!("Undeclared variable '{}'.", assignment.var)),
+            Some(symbol) => {}
+        }
+        drop(symbol_table);
+        let expr_value = self.parse_expr(&assignment.expr)?;
+        let index;
+        match &assignment.index {
+            None => {index = -1}
+            Some(e) => {index = self.parse_expr(&e)}
         }
         Ok(())
     }
