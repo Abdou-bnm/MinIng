@@ -18,7 +18,7 @@ pub struct Symbol {
     pub Type: Option<Types>,
     pub Is_Constant: Option<bool>,
     pub Address: Option<usize>,
-    pub Value: Option<TypeValue>,
+    pub Value: Option<Vec<TypeValue>>,
     pub size: Option<i16>,  // ONLY USED IN ARRAYS
 }
 impl Symbol {
@@ -27,7 +27,7 @@ impl Symbol {
         Type: Option<Types>,
         Is_Constant: Option<bool>,
         Address: Option<usize>,
-        Value: Option<TypeValue>,
+        Value: Option<Vec<TypeValue>>,
         size: Option<i16>,
     ) -> Self {
         Symbol {
@@ -50,9 +50,9 @@ pub fn insert(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, symbol: Sy
     Ok(())
 }
 
-pub fn update(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str, value: TypeValue) -> Result<(), String> {
+pub fn update(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str, value: &Vec<TypeValue>) -> Result<(), String> {
     if let Some(symbol) = symbolTable.lock().unwrap().get_mut(identifier) {
-        symbol.Value = Some(value);
+        symbol.Value = Some(value.clone());
         Ok(())
     } else {
         Err(format!("Symbol '{}' not found in the table", identifier))

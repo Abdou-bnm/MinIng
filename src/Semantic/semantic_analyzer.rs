@@ -77,8 +77,13 @@ impl SemanticAnalyzer {
             },
             crate::Parser::ast::Variable::Initialized(name, expr) => {
                 let value = self.parse_expr(expr)?;
+                
                 match SymbolTable.lock().unwrap().get_mut(name) {
-                    Some(e) => e.Value = Some(value.clone()),
+                    Some(e) => match e.Value.as_mut() {
+                        None => e.Value = Some(vec![value.clone()]),
+                        Some(t) => return Err(format!("Variable '{}' is already initialized", name)),
+                    }
+                    // Some(e) => e.Value.as_mut().unwrap()[0] = value.clone(),
                     None => return Err(format!("Syntactic Error: Undeclared variable '{}'.", name)),
                 };
 
@@ -133,21 +138,33 @@ impl SemanticAnalyzer {
                     if i >= size {
                         return Err(format!("Index out of bounds, Array of size {}, Got {}.", size, i));
                     }
-                    if i == 0 {
-                        match symbol.Value.clone() {
-                            Some(value) => Ok(value),
-                            None => Err(format!("Variable '{}' used before being Assigned", symbol.Identifier))
-                        }
+                    match &symbol.Value {
+                        None => Err(format!("Variable '{}' used before being Assigned", symbol.Identifier)),
+                        Some(vec) => Ok(vec[i as usize].clone())
                     }
-                    else {
-                        // Will be used when we actually implement addresses
-                        match symbol.Type.clone().unwrap() { 
-                            Types::Integer => Ok(TypeValue::Integer(0)),
-                            Types::Float => Ok(TypeValue::Float(0f32)),
-                            Types::Char => Ok(TypeValue::Char('!')),
-                            _ => Err(format!("Invalid type for expression, symbol in error: {}", symbol))
-                        }
-                    }
+
+                    // if i == 0 {
+                    //     match symbol.Value.clone() {
+                    //         Some(value) => Ok(value),
+                    //         None => Err(format!("Variable '{}' used before being Assigned", symbol.Identifier))
+                    //     }
+                    // 
+                    //     match symbol.Value.clone().unwrap()[i as usize] {
+                    //         TypeValue::Integer(_) => {}
+                    //         TypeValue::Float(_) => {}
+                    //         TypeValue::Char(_) => {}
+                    //         TypeValue::Array(_) => {}
+                    //     }
+                    // }
+                    // else {
+                    //     // Will be used when we actually implement addresses
+                    //     match symbol.Type.clone().unwrap() { 
+                    //         Types::Integer => Ok(TypeValue::Integer(0)),
+                    //         Types::Float => Ok(TypeValue::Float(0f32)),
+                    //         Types::Char => Ok(TypeValue::Char('!')),
+                    //         _ => Err(format!("Invalid type for expression, symbol in error: {}", symbol))
+                    //     }
+                    // }
                 }
                 _ => Err("Invalid Array size type.".to_string())?
             }
@@ -156,11 +173,8 @@ impl SemanticAnalyzer {
 
     fn parse_expr(&mut self, p0: &Expr) -> Result<TypeValue, String> {
         println!("{:?}", p0);
-        // let symbol_table = SymbolTable.lock().unwrap();
         match  SymbolTable.try_lock() {
-            Ok(_) => {println!(
-                "Success"
-            )}
+            Ok(_) => {}
             Err(e) => {println!("{:?}", e); return Err(format!("Syntactic Error: {}", e));}
         }
         match p0 {
@@ -173,7 +187,7 @@ impl SemanticAnalyzer {
             Expr::Variable(s) => match SymbolTable.lock().unwrap().get(s) {
                 Some(t) => {
                     match &t.Value {
-                        Some(e) => Ok(e.clone()),
+                        Some(e) => Ok(e[0].clone()),
                         None => Err(format!("Variable '{}' used before being Assigned", t.Identifier))
                     }
                 },
@@ -242,7 +256,7 @@ impl SemanticAnalyzer {
                 let symbol = symbol_table
                     .get(name)
                     .ok_or_else(|| format!("Undeclared variable '{}'.", name))?;
-                
+
                 drop(symbol_table);
                 // let value = self.parse_expr(&values[0])?;
                 // match SymbolTable.lock().unwrap().get_mut(name) {
@@ -257,11 +271,11 @@ impl SemanticAnalyzer {
                     let parsedValue = self.parse_expr(value)?;
                     vector.push(parsedValue);
                 }
-                
+
                 let mut symbol_table = SymbolTable.lock().unwrap();
                 let symbol = symbol_table.get_mut(name).unwrap();
-                symbol.Value = Some(TypeValue::Array(vector));
-                
+                symbol.Value = Some(vector);
+
                 SemanticRules::validate_array_declaration(name, type_decl, size)
             },
             ArrayDecl::InitializedString(name, size_expr, value) => {
@@ -275,10 +289,12 @@ impl SemanticAnalyzer {
                 else { 
                     symbolTableValue = Some(TypeValue::Char(value.chars().nth(0).unwrap()));
                 }
+                let valueVector = vec![symbolTableValue.unwrap()];
                 match SymbolTable.lock().unwrap().get_mut(name) {
                     Some(e) => {
                         e.size = Some(size);
-                        e.Value = symbolTableValue},
+                        e.Value = Some(valueVector)
+                    },
                     None => return Err(format!("Undeclared variable '{}'.", name)),
                 };
 
@@ -298,7 +314,7 @@ impl SemanticAnalyzer {
         let value = self.parse_expr(&constant.expr)?;
         let Identifier = constant.var.clone();
         match SymbolTable.lock().unwrap().get_mut(&Identifier) {
-            Some(e) => e.Value = Some(value.clone()),
+            Some(e) => e.Value.as_mut().unwrap()[0] = value.clone(),
             None => return Err(format!("Undeclared variable '{}'.", &Identifier)),
         };
 
@@ -380,47 +396,43 @@ impl SemanticAnalyzer {
         //     }
         //     None => return Err(format!("Undeclared variable '{}'.", assignment.var)),
         // }
-        
-        let symbol_table = SymbolTable.lock().unwrap();
+
+        let mut symbol_table = SymbolTable.lock().unwrap();
         let symbol = symbol_table
             .get(&assignment.var)
             .ok_or_else(|| format!("Undeclared variable '{}'.", assignment.var))?;
 
         drop(symbol_table);
-        
+
         let expr_value = self.parse_expr(&assignment.expr)?;
+
+        symbol_table = SymbolTable.lock().unwrap();
+        let symbol = symbol_table.get(&assignment.var).unwrap().clone();
+        drop(symbol_table);
+        let symbolType = symbol.Type.clone().unwrap();
+        
+        match (symbolType, expr_value.clone()) {
+            (Types::Integer, TypeValue::Integer(t)) => {},
+            (Types::Char, TypeValue::Char(t2)) => {},
+            (Types::Float, TypeValue::Float(t3)) => {},
+            _ => return Err(format!("Cannot insert value of type {:?} into an array of type {:?}.", expr_value.clone(), symbol.Type.clone().unwrap())),
+        }
+        
         let mut index = 0;
         match &assignment.index {
             None => index = 0,
             Some(e) => {
                 match self.parse_expr(&e)? {
-                    TypeValue::Integer(i) => {
-                        index = i;
-                        let mut symbol_table = SymbolTable.lock().unwrap();
-                        // let symbol =;
-                        // match symbol.Value {
-                        //     None => {}
-                        //     Some(value) => match value {
-                        //         TypeValue::Integer(_) => {}
-                        //         TypeValue::Float(_) => {}
-                        //         TypeValue::Char(_) => {}
-                        //         TypeValue::Array(_) => {}
-                        //     }
-                        // }
-                    },
+                    TypeValue::Integer(i) => index = i,
                     _ => Err("Invalid Array size type.".to_string())?
                 }
             }
         }
         let mut symbol_table = SymbolTable.lock().unwrap();
         let symbol = symbol_table.get_mut(&assignment.var).unwrap();
-        if index == 0 {
-            symbol.Value = Some(expr_value)
-        }
-        else {
-            // Will be implemented later
-        }
         
+        symbol.Value.as_mut().unwrap()[index as usize] = expr_value;
+
         Ok(())
     }
 

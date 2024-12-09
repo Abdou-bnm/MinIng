@@ -96,13 +96,14 @@ Declaration: Declaration = {
                     let Identifier = Identifier.clone();
                     let symbolTableValue;
                     if Value.chars().count() == 0 {
-                        symbolTableValue = Some(TypeValue::Char('\0'));
+                        symbolTableValue = TypeValue::Char('\0');
                     }
                     else {
                     // Set initial value to first character (here it's second because first is double quote)
-                        symbolTableValue = Some(TypeValue::Char(Value.chars().nth(1).unwrap()));
+                        symbolTableValue = TypeValue::Char(Value.chars().nth(1).unwrap());
                     }
-                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, symbolTableValue, None)) {
+                    let vector = vec!(symbolTableValue);
+                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, Some(vector), None)) {
                         Ok(t) => {},
                         Err(s) => {
                             eprintln!("Syntactic Error: {}", s);

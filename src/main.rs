@@ -16,7 +16,6 @@ use lalrpop_util;
 use lalrpop_util::lalrpop_mod;
 use logos::Logos;
 use once_cell::sync::Lazy;
-// use crate::Lexer::lexer::SymbolTable;
 use crate::Parser::ast::BinOp;
 use crate::Semantic::semantic_analyzer::SemanticAnalyzer;
 use crate::Semantic::ts::*;
@@ -33,8 +32,8 @@ fn main() {
         %% INTEGER Arr0[7] = [1, 2, 3, 4];
         %% CHAR Arr3[6] = "Hello";
         %% FLOAT Arr1[B] = [1.2, .5];
-        %% CHAR Arr2[10] = ['S', 't', 'r', 'i', 'n', 'g'];
-         CHAR I = 'X';
+        CHAR Arr2[10] = ['S', 't', 'r', 'i', 'n', 'g'];
+        CHAR I = 'X';
     }
     DECLARATION {
         INTEGER B = 4;
@@ -45,6 +44,8 @@ fn main() {
     }
     INSTRUCTION {
         B = B + 4;
+        Arr2[1] = '1';
+        Arr2[3] = '1';
     }
     "#;
 
