@@ -37,27 +37,14 @@ fn main() {
          CHAR I = 'X';
     }
     DECLARATION {
-        INTEGER B = 4 + 7;
-        %% INTEGER C = B + 4,
-                %% A = B + C + 2;
+        INTEGER B = 4;
+        INTEGER C = B + 4,
+                A = B + C + 2;
         %% CONST INTEGER D = 5;
         %% CONST FLOAT R = .6;
     }
     INSTRUCTION {
-        B = 4 + 7;
-        IF ((A == 12) || ((A > 10) && (B != 15))) {
-            WRITE("X is positive");
-        }
-        ELSE {
-            WRITE("X is non-positive");
-        }
-        FOR (I = 'A' : 'B' : Arr3[3]) {
-            WRITE(I);
-        }
-
-        FOR (B = 6 : 12 : Arr0[2]) {
-            WRITE(I);
-        }
+        B = B + 4;
     }
     "#;
 

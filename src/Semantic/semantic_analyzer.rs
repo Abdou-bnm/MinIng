@@ -200,7 +200,6 @@ impl SemanticAnalyzer {
         if parsed_declared_size < elements.len() as i16 {
             return Err(format!("Array overflow detected\nExpected a maximum of '{}' elements, got assigned {} elements.", parsed_declared_size, elements.len()));
         }
-        let first_element = &elements[0];
 
         for element in elements {
             let value_type = self.infer_expression_type(element)?;
@@ -239,15 +238,30 @@ impl SemanticAnalyzer {
                 let size = self.evaluate_array_size(size_expr)?;
                 // Additional type checking for initialized arrays
                 self.validate_array_initialization(type_decl, size_expr, values)?;
-                let value = self.parse_expr(&values[0])?;
-                match SymbolTable.lock().unwrap().get_mut(name) {
-                    Some(e) => {
-                        e.size = Some(size);
-                        e.Value = Some(value)
-                    },
-                    None => return Err(format!("Undeclared variable '{}'.", name)),
-                };
-
+                let symbol_table = SymbolTable.lock().unwrap();
+                let symbol = symbol_table
+                    .get(name)
+                    .ok_or_else(|| format!("Undeclared variable '{}'.", name))?;
+                
+                drop(symbol_table);
+                // let value = self.parse_expr(&values[0])?;
+                // match SymbolTable.lock().unwrap().get_mut(name) {
+                //     Some(e) => {
+                //         e.size = Some(size);
+                //         e.Value = Some(value)
+                //     },
+                //     None => return Err(format!("Undeclared variable '{}'.", name)),
+                // };
+                let mut vector: Vec<TypeValue> = vec!();
+                for value in values {
+                    let parsedValue = self.parse_expr(value)?;
+                    vector.push(parsedValue);
+                }
+                
+                let mut symbol_table = SymbolTable.lock().unwrap();
+                let symbol = symbol_table.get_mut(name).unwrap();
+                symbol.Value = Some(TypeValue::Array(vector));
+                
                 SemanticRules::validate_array_declaration(name, type_decl, size)
             },
             ArrayDecl::InitializedString(name, size_expr, value) => {
@@ -366,18 +380,47 @@ impl SemanticAnalyzer {
         //     }
         //     None => return Err(format!("Undeclared variable '{}'.", assignment.var)),
         // }
-        let symbol_table = SymbolTable.lock().unwrap().get_mut(&assignment.var);
-        match symbol_table {
-            None => return Err(format!("Undeclared variable '{}'.", assignment.var)),
-            Some(symbol) => {}
-        }
+        
+        let symbol_table = SymbolTable.lock().unwrap();
+        let symbol = symbol_table
+            .get(&assignment.var)
+            .ok_or_else(|| format!("Undeclared variable '{}'.", assignment.var))?;
+
         drop(symbol_table);
+        
         let expr_value = self.parse_expr(&assignment.expr)?;
-        let index;
+        let mut index = 0;
         match &assignment.index {
-            None => {index = -1}
-            Some(e) => {index = self.parse_expr(&e)}
+            None => index = 0,
+            Some(e) => {
+                match self.parse_expr(&e)? {
+                    TypeValue::Integer(i) => {
+                        index = i;
+                        let mut symbol_table = SymbolTable.lock().unwrap();
+                        // let symbol =;
+                        // match symbol.Value {
+                        //     None => {}
+                        //     Some(value) => match value {
+                        //         TypeValue::Integer(_) => {}
+                        //         TypeValue::Float(_) => {}
+                        //         TypeValue::Char(_) => {}
+                        //         TypeValue::Array(_) => {}
+                        //     }
+                        // }
+                    },
+                    _ => Err("Invalid Array size type.".to_string())?
+                }
+            }
         }
+        let mut symbol_table = SymbolTable.lock().unwrap();
+        let symbol = symbol_table.get_mut(&assignment.var).unwrap();
+        if index == 0 {
+            symbol.Value = Some(expr_value)
+        }
+        else {
+            // Will be implemented later
+        }
+        
         Ok(())
     }
 
