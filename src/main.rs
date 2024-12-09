@@ -27,28 +27,33 @@ fn main() {
     let input = r#"
     VAR_GLOBAL {
         INTEGER V = 0, X = 1, W = 2;
-        %% FLOAT Y;
-        %% CHAR E = '!';
-        %% INTEGER Arr0[7] = [1, 2, 3, 4];
-        %% CHAR Arr3[6] = "Hello";
-        %% FLOAT Arr1[B] = [1.2, .5];
+        FLOAT Y;
+        CHAR E = '!';
+        INTEGER Arr0[7] = [1, 2, 3, 4];
+        INTEGER B = 4;
+        INTEGER C = B + 4,
+                A = B + C + 2;
+        CHAR F = ' ';
+        CHAR Arr5[3] = "";
+        CHAR Arr3[6] = "Hello";
+        FLOAT Arr4[5];
+        FLOAT Arr1[B] = [1.2, .5, 2.0];
         CHAR Arr2[10] = ['S', 't', 'r', 'i', 'n', 'g'];
         CHAR I = 'X';
     }
     DECLARATION {
-        INTEGER B = 4;
-        INTEGER C = B + 4,
-                A = B + C + 2;
-        %% CONST INTEGER D = 5;
-        %% CONST FLOAT R = .6;
+        CONST INTEGER D = 5;
+        CONST FLOAT R = .6;
     }
     INSTRUCTION {
         B = B + 4;
         Arr2[1] = '1';
         Arr2[3] = '1';
+        Arr1[1] = (Arr1[1] + Arr1[1]) / Arr1[2];
+        Arr3[2] = 'L';
     }
     "#;
-
+    
 // **************************************************** Lexical Analysis ****************************************************
 // Display of all tokens, enumerated
 //     let mut i = 0;
@@ -59,6 +64,7 @@ fn main() {
 //     }
 
 // Prints errors found in the lexical analysis phase
+
     let mut lexer = Lexer::lexer::Token::lexer(input);
     while let Some(token) = lexer.next() {
         match token {
@@ -88,7 +94,7 @@ fn main() {
             exit(1);
         },
     }
-    
+
 // Printing Program's Structure
 //     println!("Program Structure:");
 // 
@@ -123,6 +129,7 @@ fn main() {
 //     Expression Parsing and calculating results: Done (for Ints, tested it inside array size)
 //     Array size check: Done
 //     If conditions: Not yet, PC's battery will die
+
     let mut semanticAnalyzer = SemanticAnalyzer::new();
 
     let semantic_result = semanticAnalyzer.analyze(&program);
