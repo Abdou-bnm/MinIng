@@ -140,7 +140,7 @@ fn main() {
             exit(1);
         },
     }
-
+    
 // **************************************************** Symbol Table ****************************************************
 // Full print of the symbol table
     print_table(&SymbolTable);

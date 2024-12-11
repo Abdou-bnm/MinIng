@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::fmt::format;
+use std::ops::Deref;
 use std::sync::Mutex;
 use once_cell::sync::Lazy;
 use crate::Parser::ast::TypeValue;
@@ -78,11 +80,18 @@ pub fn remove(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier
 impl std::fmt::Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 
-
-
         // Format each field, truncating or padding as needed
         let identifier = format!("{:.17}", self.Identifier);
-        let type_str = format!("{:?}", self.Type).chars().take(17).collect::<String>();
+        let type_str = match &self.Type {
+            None => "N/A",
+            Some(t) => match t {
+                Types::Integer => "INTEGER",
+                Types::Float => "FLOAT",
+                Types::Char => "CHAR",
+                _ => ""
+            }
+        }.chars().take(17).collect::<String>();
+        
         let size_str = self.size.map_or("N/A".to_string(), |s| format!("{}", s)).chars().take(17).collect::<String>();
         let constant_str = self.Is_Constant.map_or("N/A".to_string(), |c| format!("{}", c)).chars().take(17).collect::<String>();
         let address_str = self.Address.map_or("N/A".to_string(), |a| format!("{}", a)).chars().take(17).collect::<String>();
@@ -91,8 +100,6 @@ impl std::fmt::Display for Symbol {
         // Write the row with formatted data
         writeln!(f, "| {:<17} | {:<17} | {:<17} | {:<17} | {:<17} | {:<17} |",
                  identifier, type_str, size_str, constant_str, address_str, value_str)?;
-
-
 
         Ok(())
     }
