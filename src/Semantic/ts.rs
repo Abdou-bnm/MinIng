@@ -76,16 +76,9 @@ pub fn remove(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier
 //     }
 // }
 impl std::fmt::Display for Symbol {
-
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 
-        let border = "+-------------------+-------------------+-------------------+-------------------+-------------------+-------------------+";
-        let headers = "| Identifier        | Type              | Size              | Constant          | Address           | Value             |";
 
-        // Write the top border
-        writeln!(f, "{}", border)?;
-        writeln!(f, "{}", headers)?;
-        writeln!(f, "{}", border)?;
 
         // Format each field, truncating or padding as needed
         let identifier = format!("{:.17}", self.Identifier);
@@ -99,8 +92,7 @@ impl std::fmt::Display for Symbol {
         writeln!(f, "| {:<17} | {:<17} | {:<17} | {:<17} | {:<17} | {:<17} |",
                  identifier, type_str, size_str, constant_str, address_str, value_str)?;
 
-        // Write the bottom border
-        writeln!(f, "{}", border)?;
+
 
         Ok(())
     }
@@ -109,7 +101,14 @@ impl std::fmt::Display for Symbol {
 // Update print_table function to improve readability
 pub fn print_table(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>) {
     println!("\nSymbol Table Contents:");
+    let border = "+-------------------+-------------------+-------------------+-------------------+-------------------+-------------------+";
+    let headers = "| Identifier        | Type              | Size              | Constant          | Address           | Value             |";
+
+    println!("{}", border);
+    println!("{}", headers);
+    println!("{}", border);
     for (key, value) in symbolTable.lock().unwrap().iter() {
-        println!("{}", value);
+        print!("{}", value);
+        println!("{}", border);
     }
 }
