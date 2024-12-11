@@ -64,21 +64,52 @@ pub fn remove(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier
     symbolTable.lock().unwrap().remove(identifier)
 }
 
-// Print all symbols in the table
-pub fn print_table(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>) {
-    println!("\nSymbol Table Contents:");
-    for (key, value) in symbolTable.lock().unwrap().iter() {
-        println!("{}:\n{}", key, value);
+
+// Implement Display for Symbol to improve debugging
+// impl std::fmt::Display for Symbol {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(
+//             f,
+//             "\tIdentifier: \"{}\"\n\tType: {:?}\n\tSize: {:?}\n\tConstant: {:?}\n\tAddress: {:?}\n\tValue: {:?}\n",
+//             self.Identifier, self.Type, self.size, self.Is_Constant, self.Address, self.Value
+//         )
+//     }
+// }
+impl std::fmt::Display for Symbol {
+
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+
+        let border = "+-------------------+-------------------+-------------------+-------------------+-------------------+-------------------+";
+        let headers = "| Identifier        | Type              | Size              | Constant          | Address           | Value             |";
+
+        // Write the top border
+        writeln!(f, "{}", border)?;
+        writeln!(f, "{}", headers)?;
+        writeln!(f, "{}", border)?;
+
+        // Format each field, truncating or padding as needed
+        let identifier = format!("{:.17}", self.Identifier);
+        let type_str = format!("{:?}", self.Type).chars().take(17).collect::<String>();
+        let size_str = self.size.map_or("N/A".to_string(), |s| format!("{}", s)).chars().take(17).collect::<String>();
+        let constant_str = self.Is_Constant.map_or("N/A".to_string(), |c| format!("{}", c)).chars().take(17).collect::<String>();
+        let address_str = self.Address.map_or("N/A".to_string(), |a| format!("{}", a)).chars().take(17).collect::<String>();
+        let value_str = self.Value.as_ref().map_or("N/A".to_string(), |v| format!("{:?}", v)).chars().take(17).collect::<String>();
+
+        // Write the row with formatted data
+        writeln!(f, "| {:<17} | {:<17} | {:<17} | {:<17} | {:<17} | {:<17} |",
+                 identifier, type_str, size_str, constant_str, address_str, value_str)?;
+
+        // Write the bottom border
+        writeln!(f, "{}", border)?;
+
+        Ok(())
     }
 }
 
-// Implement Display for Symbol to improve debugging
-impl std::fmt::Display for Symbol {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "\tIdentifier: \"{}\"\n\tType: {:?}\n\tSize: {:?}\n\tConstant: {:?}\n\tAddress: {:?}\n\tValue: {:?}\n",
-            self.Identifier, self.Type, self.size, self.Is_Constant, self.Address, self.Value
-        )
+// Update print_table function to improve readability
+pub fn print_table(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>) {
+    println!("\nSymbol Table Contents:");
+    for (key, value) in symbolTable.lock().unwrap().iter() {
+        println!("{}", value);
     }
 }
