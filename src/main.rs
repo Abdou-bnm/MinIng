@@ -27,7 +27,7 @@ fn main() {
     let input = r#"
     VAR_GLOBAL {
         INTEGER V = 0, X = 1, W = 2;
-        FLOAT Y;
+        CHAR Y[1] = "";
         CHAR E = '!';
         INTEGER Arr0[7] = [1, 2, 3, 4];
         INTEGER B = 4;
@@ -37,7 +37,7 @@ fn main() {
         CHAR Arr5[3] = "";
         CHAR Arr3[6] = "Hello";
         FLOAT Arr4[5];
-        FLOAT Arr1[B] = [1.2, .5, 2.0];
+        FLOAT Arr1[B] = [1.2, .5124, 2.045];
         CHAR Arr2[10] = ['S', 't', 'r', 'i', 'n', 'g'];
         CHAR I = 'X';
     }
@@ -64,7 +64,6 @@ fn main() {
 //     }
 
 // Prints errors found in the lexical analysis phase
-
     let mut lexer = Lexer::lexer::Token::lexer(input);
     while let Some(token) = lexer.next() {
         match token {
@@ -123,13 +122,6 @@ fn main() {
 //     }
 
 // **************************************************** Semantic Analysis ****************************************************
-//     constant re-assignment: done,
-//     Wrong Type re-assignment: done,
-//     READ & WRITE variable verification: done
-//     Expression Parsing and calculating results: Done (for Ints, tested it inside array size)
-//     Array size check: Done
-//     If conditions: Not yet, PC's battery will die
-
     let mut semanticAnalyzer = SemanticAnalyzer::new();
 
     let semantic_result = semanticAnalyzer.analyze(&program);

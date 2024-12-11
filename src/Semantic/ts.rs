@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt::format;
 use std::ops::Deref;
 use std::sync::Mutex;
+use logos::Source;
 use once_cell::sync::Lazy;
 use crate::Parser::ast::TypeValue;
 use crate::Semantic::ts;
@@ -66,17 +67,6 @@ pub fn remove(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier
     symbolTable.lock().unwrap().remove(identifier)
 }
 
-
-// Implement Display for Symbol to improve debugging
-// impl std::fmt::Display for Symbol {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(
-//             f,
-//             "\tIdentifier: \"{}\"\n\tType: {:?}\n\tSize: {:?}\n\tConstant: {:?}\n\tAddress: {:?}\n\tValue: {:?}\n",
-//             self.Identifier, self.Type, self.size, self.Is_Constant, self.Address, self.Value
-//         )
-//     }
-// }
 impl std::fmt::Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 
@@ -91,15 +81,52 @@ impl std::fmt::Display for Symbol {
                 _ => ""
             }
         }.chars().take(17).collect::<String>();
-        
+
         let size_str = self.size.map_or("N/A".to_string(), |s| format!("{}", s)).chars().take(17).collect::<String>();
         let constant_str = self.Is_Constant.map_or("N/A".to_string(), |c| format!("{}", c)).chars().take(17).collect::<String>();
         let address_str = self.Address.map_or("N/A".to_string(), |a| format!("{}", a)).chars().take(17).collect::<String>();
         let value_str = self.Value.as_ref().map_or("N/A".to_string(), |v| format!("{:?}", v)).chars().take(17).collect::<String>();
+        let empty_string = "".to_string();
+        let mut value_arr: Vec<String> = vec![];
+
+        match &self.Value {
+            None => value_arr.push("N/A".to_string()),
+            Some(vec) => {
+                let mut string = "".to_string();
+                for value in vec {
+                    let element: String;
+                    match value {
+                        TypeValue::Integer(i) => element = format!("{}, ", i),
+                        TypeValue::Float(f) => element = format!("{}, ", f),
+                        TypeValue::Char(c) => { 
+                            if c.clone() as u16 == 0 {
+                                element = "'\\0', ".to_string()
+                            }
+                            else { 
+                                element = format!("'{}', ", c)
+                            }
+                        },
+                        _ => element = "".to_string(),
+                    }
+                    if string.len() + element.len() > 17 {
+                        value_arr.push(string);
+                        string = element.clone();
+                    }
+                    else {
+                        string += element.as_str();
+                    }
+                }
+                value_arr.push(string[..(string.len() - 2)].to_string());
+            }
+        }
 
         // Write the row with formatted data
         writeln!(f, "| {:<17} | {:<17} | {:<17} | {:<17} | {:<17} | {:<17} |",
-                 identifier, type_str, size_str, constant_str, address_str, value_str)?;
+                 identifier, type_str, size_str, constant_str, address_str, value_arr[0])?;
+        for line in &value_arr[1..] {
+                writeln!(f, "| {:<17} | {:<17} | {:<17} | {:<17} | {:<17} | {:<17} |",
+                         empty_string, empty_string, empty_string, empty_string, empty_string, line)?;
+        }
 
         Ok(())
     }
