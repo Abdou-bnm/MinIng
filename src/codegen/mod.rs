@@ -1,1 +1,2 @@
-pub mod code_generator;
+pub mod  generator;
+pub mod  tests;

@@ -1,0 +1,11 @@
+C:\Users\hiche\Documents\ING_A\3em\compile\projet\MinIng\target\debug\deps\libregion-4284d1d70d990dc9.rmeta: C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\lib.rs C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\error.rs C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\lock.rs C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\os\mod.rs C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\os\windows.rs C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\page.rs C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\protect.rs
+
+C:\Users\hiche\Documents\ING_A\3em\compile\projet\MinIng\target\debug\deps\region-4284d1d70d990dc9.d: C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\lib.rs C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\error.rs C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\lock.rs C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\os\mod.rs C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\os\windows.rs C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\page.rs C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\protect.rs
+
+C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\lib.rs:
+C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\error.rs:
+C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\lock.rs:
+C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\os\mod.rs:
+C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\os\windows.rs:
+C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\page.rs:
+C:\Users\hiche\.cargo\registry\src\index.crates.io-6f17d22bba15001f\region-2.2.0\src\protect.rs:
