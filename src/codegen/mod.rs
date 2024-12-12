@@ -1,1 +1,1 @@
-pub mod quadruplets;
+pub mod code_generator;

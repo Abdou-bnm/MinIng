@@ -12,6 +12,8 @@ thiserror = "2.0.5"
 lalrpop-util = { version = "0.22.0", features = ["lexer", "unicode"] }
 parking_lot = "0.12"
 
+tempfile = "3.3"
+
 regex = "1"
 
 [build-dependencies]
