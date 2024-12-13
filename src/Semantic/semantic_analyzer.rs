@@ -315,10 +315,10 @@ impl SemanticAnalyzer {
         )
     }
 
-    fn analyze_instructions(&mut self, instructions: &Vec<Instruction>) -> Result<(), String> {
+    fn analyze_instructions(&mut self, instructions: &Vec<Instruction>, runt_act : bool) -> Result<(), String> {
         for instruction in instructions {
             match instruction {
-                Instruction::Assign(assignment) => self.validate_assignment(assignment)?,
+                Instruction::Assign(assignment) => self.validate_assignment(assignment, runt_act : bool)?,
                 Instruction::If(if_stmt) => self.validate_if_statement(if_stmt)?,
                 Instruction::For(for_loop) => self.validate_for_loop(for_loop)?,
                 Instruction::Read(read_stmt) => self.validate_read(read_stmt)?,
@@ -331,7 +331,7 @@ impl SemanticAnalyzer {
     // Implement other validation methods here:
     // validate_assignment, validate_if_statement, validate_for_loop,
     // validate_read, validate_write...
-    fn validate_assignment(&mut self, assignment: &Assignment) -> Result<(), String> {
+    fn validate_assignment(&mut self, assignment: &Assignment, runt_act : bool) -> Result<(), String> {
         // Check if variable exists in symbol table
         let mut symbol_table = SymbolTable.lock().unwrap();
         let symbol = symbol_table
@@ -381,11 +381,11 @@ impl SemanticAnalyzer {
                 }
             }
         }
-        let mut symbol_table = SymbolTable.lock().unwrap();
-        let symbol = symbol_table.get_mut(&assignment.var).unwrap();
-        
-        symbol.Value.as_mut().unwrap()[index as usize] = expr_value;
-
+        if(!runt_act) {
+            let mut symbol_table = SymbolTable.lock().unwrap();
+            let symbol = symbol_table.get_mut(&assignment.var).unwrap();
+            symbol.Value.as_mut().unwrap()[index as usize] = expr_value;
+        }
         Ok(())
     }
 
@@ -428,11 +428,11 @@ impl SemanticAnalyzer {
         SemanticRules::validate_condition(&if_stmt.condition, &mut type_check_closure)?;
 
         // Validate then block instructions
-        self.analyze_instructions(&if_stmt.then_block)?;
+        self.analyze_instructions(&if_stmt.then_block,false)?;
 
         // Validate else block instructions if present
         if let Some(else_instructions) = &if_stmt.else_block {
-            self.analyze_instructions(else_instructions)?;
+            self.analyze_instructions(else_instructions, false)?;
         }
 
         Ok(())

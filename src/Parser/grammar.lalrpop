@@ -224,6 +224,16 @@ Term: Expr = {
 
 Factor: Expr = {
     "(" <Expr> ")" => <>,
+
+    "(" "+" "(" <Expr> ")" ")" => <>,
+    "(" "-" "(" <e : Expr> ")" ")" =>Expr::BinaryOp(Box::from(e.clone()),BinOp::Sub, Box::from(Expr::BinaryOp(Box::from(e.clone()), BinOp::Add, Box::from(e.clone())))),
+    "(" "+" <i: "Identifier"> ")" => Expr::Variable(i),
+    "(" "+" <n: "Integer"> ")" => Expr::Literal(TypeValue::Integer(n)),
+    "(" "+" <f: "Float"> ")" => Expr::Literal(TypeValue::Float(f)),
+    "(" "-" <i: "Identifier"> ")" => Expr::BinaryOp(Box::new(Expr::Literal(TypeValue::Integer(0))),BinOp::Sub, Box::new(Expr::Variable(i))),
+    "(" "-" <n: "Integer"> ")" => Expr::Literal(TypeValue::Integer(0-n)),
+    "(" "-" <f: "Float"> ")" => Expr::Literal(TypeValue::Float(0.0-f)),
+
     <i:"Identifier"> => {
         Expr::Variable(i)
     },
@@ -232,7 +242,6 @@ Factor: Expr = {
     <f: "Float"> => Expr::Literal(TypeValue::Float(f)),
     <c: "Char"> => Expr::Literal(TypeValue::Char(c)),
 };
-
 IfStatement: IfStmt = {
     "IF" "(" <c:Condition> ")" "{" <t:InstructionBlock> "}" <e:ElseBlock?> =>
         IfStmt::new(c, t, e),

@@ -26,7 +26,9 @@ pub static SymbolTable: Lazy<Mutex<HashMap<String, Symbol>>> = Lazy::new(|| Mute
 fn main() {
     let input = r#"
     VAR_GLOBAL {
-        INTEGER V = 0, X = 1, W = 2;
+        INTEGER V;
+        INTEGER X = 1;
+        FLOAT Z = 2.0;
         CHAR Y[1] = "";
         CHAR E = '!';
         INTEGER Arr0[7] = [1, 2, 3, 4];
@@ -46,7 +48,14 @@ fn main() {
         CONST FLOAT R = .6;
     }
     INSTRUCTION {
+        READ(V);
+        X = V + 4;
+        Z = ( - ( 6.5 * 4.5 + 5.6) );
+        X = ( - ( 5 * 9 + 6 ));
+        Arr1[2] = ( - 5.6 );
         X = (+1);
+        X = (-B);
+        WRITE(B);
         B = B + 4;
         Arr2[1] = '1';
         Arr2[3] = '1';
@@ -54,12 +63,11 @@ fn main() {
         Arr3[2] = 'L';
         %% This is a comment
         FOR( B = 2 : 6 : 10) { B = B + 1; }
-        READ(B);
-        WRITE("Enter a posivite number")
-        WRITE(B);
+        %% READ(B);
+        WRITE("Enter a posivite number");
         WRITE("B read value : ", B , "." );
         IF( B >= 0) { B = B + 1; } ELSE {B = 0;}
-
+        Z = Arr4[0];
     }
     "#;
     
