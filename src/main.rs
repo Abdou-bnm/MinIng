@@ -48,8 +48,8 @@ fn main() {
         CONST FLOAT R = .6;
     }
     INSTRUCTION {
-        READ(V);
-        X = V + 4;
+        %% READ(V); %% crash
+        %% X = V + 4; %% crash
         Z = ( - ( 6.5 * 4.5 + 5.6) );
         X = ( - ( 5 * 9 + 6 ));
         Arr1[2] = ( - 5.6 );
@@ -62,12 +62,13 @@ fn main() {
         Arr1[1] = (Arr1[1] + Arr1[1]) / Arr1[2];
         Arr3[2] = 'L';
         %% This is a comment
-        FOR( B = 2 : 6 : 10) { B = B + 1; }
+
         %% READ(B);
         WRITE("Enter a posivite number");
         WRITE("B read value : ", B , "." );
         IF( B >= 0) { B = B + 1; } ELSE {B = 0;}
-        Z = Arr4[0];
+        %% Z = Arr4[0]; %% crash
+        FOR( B = 2 : 6 : 10) { B = B + 1; }
     }
     "#;
     

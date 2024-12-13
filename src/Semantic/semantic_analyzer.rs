@@ -24,7 +24,7 @@ impl SemanticAnalyzer {
 
         // Analyze instructions
         if let Some(instructions) = &program.inst {
-            self.analyze_instructions(instructions)?;
+            self.analyze_instructions(instructions, false)?;
         }
 
         Ok(())
@@ -318,7 +318,7 @@ impl SemanticAnalyzer {
     fn analyze_instructions(&mut self, instructions: &Vec<Instruction>, runt_act : bool) -> Result<(), String> {
         for instruction in instructions {
             match instruction {
-                Instruction::Assign(assignment) => self.validate_assignment(assignment, runt_act : bool)?,
+                Instruction::Assign(assignment) => self.validate_assignment(assignment,runt_act)?,
                 Instruction::If(if_stmt) => self.validate_if_statement(if_stmt)?,
                 Instruction::For(for_loop) => self.validate_for_loop(for_loop)?,
                 Instruction::Read(read_stmt) => self.validate_read(read_stmt)?,
@@ -428,11 +428,11 @@ impl SemanticAnalyzer {
         SemanticRules::validate_condition(&if_stmt.condition, &mut type_check_closure)?;
 
         // Validate then block instructions
-        self.analyze_instructions(&if_stmt.then_block,false)?;
+        self.analyze_instructions(&if_stmt.then_block,true)?;
 
         // Validate else block instructions if present
         if let Some(else_instructions) = &if_stmt.else_block {
-            self.analyze_instructions(else_instructions, false)?;
+            self.analyze_instructions(else_instructions, true)?;
         }
 
         Ok(())
@@ -515,9 +515,9 @@ impl SemanticAnalyzer {
         });
 
         SemanticRules::validate_condition(&condition, &mut type_check_closure)?;
-
+        self.validate_assignment(&for_loop.init,false)?;
         // Validate loop body instructions
-        self.analyze_instructions(&for_loop.body)?;
+        self.analyze_instructions(&for_loop.body, true)?;
 
         Ok(())
     }
