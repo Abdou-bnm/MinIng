@@ -150,4 +150,5 @@ pub enum Token {
 
     #[regex(r#""(?:[^"\\]|\\.)*""#, |lex| lex.slice().to_string())]
     StringLiteral(String),
+
 }

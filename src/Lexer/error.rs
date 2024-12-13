@@ -15,7 +15,6 @@ pub enum CustomError {
 impl fmt::Display for CustomError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            // CustomError::UnrecognizedToken(token) => write!(f, "Unrecognized token: {}", token),
             CustomError::UnrecognizedToken => write!(f, "UnrecognizedToken"),
             CustomError::InvalidNumberFormat(num) => write!(f, "Invalid number format: {}", num),
             CustomError::IntegerOverflow(num) => write!(f, "Integer overflow: {}", num),

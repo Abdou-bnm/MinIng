@@ -14,7 +14,7 @@ static INPUT: Lazy<&str> = Lazy::new(|| {
         INTEGER V = 0, X = 1, W = 2;
         FLOAT Y;
         CHAR E = '!';
-        INTEGER Arr0[7] = [1, 2, 3, 4];
+        INTEGER Arr0[7 = [1, 2, 3, 4];
         INTEGER B = 4;
         INTEGER C = B + 4,
                 A = B + C + 2;
@@ -57,6 +57,8 @@ fn validate_lexical_analysis() {
         i += 1;
     }
     println!("Lexical Analysis Successful.");
+    // Clearing the symbols table
+    SymbolTable.lock().unwrap().clear();
 }
 #[test]
 fn test_syntactic_analysis() {
@@ -84,6 +86,7 @@ fn test_syntactic_analysis() {
             exit(1);
         }
     }
+    SymbolTable.lock().unwrap().clear();
 }
 #[test]
 fn test_full_analysis_pipeline() {
@@ -109,7 +112,7 @@ fn test_full_analysis_pipeline() {
         &INPUT,
         tokens.into_iter().map(|t| t.unwrap()), // Unwrap safe as errors were handled
     );
-
+    println!("parsed successfully");
     let program = match result {
         Ok(ast) => {
             println!("Syntactic Analysis Successful.");
@@ -134,10 +137,10 @@ fn test_full_analysis_pipeline() {
         }
     }
     print_table(&SymbolTable);
-}
+    SymbolTable.lock().unwrap().clear();
 
+}
 fn print_ast(program: &Program) {
     println!("\nGenerated Abstract Syntax Tree (AST):");
     println!("{:#?}", program); // Pretty-print the AST for better readability.
 }
-

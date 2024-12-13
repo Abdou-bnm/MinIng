@@ -46,11 +46,20 @@ fn main() {
         CONST FLOAT R = .6;
     }
     INSTRUCTION {
+        X = (+1);
         B = B + 4;
         Arr2[1] = '1';
         Arr2[3] = '1';
         Arr1[1] = (Arr1[1] + Arr1[1]) / Arr1[2];
         Arr3[2] = 'L';
+        %% This is a comment
+        FOR( B = 2 : 6 : 10) { B = B + 1; }
+        READ(B);
+        WRITE("Enter a posivite number")
+        WRITE(B);
+        WRITE("B read value : ", B , "." );
+        IF( B >= 0) { B = B + 1; } ELSE {B = 0;}
+
     }
     "#;
     
@@ -80,9 +89,8 @@ fn main() {
     let lexer = Lexer::lexer::Token::lexer(input);
     let parser = grammar::ProgramParser::new();
     let result = parser.parse(input, lexer.enumerate().map(|(i, t)| t.map(|token| (i, token, i+1)).map_err(|e| e)));
-
     let program;
-
+    println!("parsing passed");
     match result {
         Ok(t) => {
             println!("Syntactic Analysis Successful.");

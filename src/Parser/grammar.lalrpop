@@ -43,7 +43,7 @@ Declaration: Declaration = {
                     let Identifier = name.clone();
                     match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, None, None)) {
                         Ok(t) => {},
-                        Err(s) => panic!("{}", s),
+                        Err(s) => eprintln!("Syntactic Error: {}", s),
                     }
                 },
                 Variable::Initialized(name, expr) => {
