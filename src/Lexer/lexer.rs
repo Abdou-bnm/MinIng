@@ -3,8 +3,16 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 
+use std::collections::HashMap;
+use std::sync::Mutex;
 use logos::Logos;
+use once_cell::sync::Lazy;
 use crate::Lexer::error::CustomError;
+use crate::Semantic::ts::Symbol;
+
+pub static lineNumber: Lazy<Mutex<u16>> = Lazy::new(|| Mutex::new(0u16));
+pub static SymbolTable: Lazy<Mutex<HashMap<String, Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+
 
 // Validation functions Copy,
 fn validate_identifier(lex: &logos::Lexer<Token>) -> Result<String, CustomError> {
@@ -33,6 +41,11 @@ fn validate_float(lex: &logos::Lexer<Token>) -> Result<f32, CustomError> {
     }
 }
 
+fn newline_callback(lex: &logos::Lexer<Token>) {
+    let lineNumberClone = lineNumber.lock().unwrap().clone();
+    *lineNumber.lock().unwrap() = lineNumberClone + 1;
+}
+
 // Main token enum
 #[derive(Logos, Debug, PartialEq, Clone)]
 pub enum Keyword{
@@ -52,8 +65,11 @@ pub enum Type{
 
 #[derive(Logos, Debug, PartialEq,Clone)]
 #[logos(error = CustomError)]
-#[logos(skip r"([ \t\n\f]+|%%[^\n]*)")]
+#[logos(skip r"([ \t\f]+|%%[^\n]*)")]
 pub enum Token {
+    #[regex(r"\n", newline_callback)]
+    NewLine,
+
     // Keywords
     #[token("VAR_GLOBAL", priority = 5)]
     VarGlobal,
