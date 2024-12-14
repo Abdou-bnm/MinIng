@@ -21,7 +21,7 @@ pub struct Symbol {
     pub Type: Option<Types>,
     pub Is_Constant: Option<bool>,
     pub Address: Option<usize>,
-    pub Value: Option<Vec<TypeValue>>,
+    pub Value: Vec<Option<TypeValue>>,
     pub size: Option<i16>,  // ONLY USED IN ARRAYS
 }
 impl Symbol {
@@ -30,7 +30,7 @@ impl Symbol {
         Type: Option<Types>,
         Is_Constant: Option<bool>,
         Address: Option<usize>,
-        Value: Option<Vec<TypeValue>>,
+        Value: Vec<Option<TypeValue>>,
         size: Option<i16>,
     ) -> Self {
         Symbol {
@@ -53,9 +53,9 @@ pub fn insert(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, symbol: Sy
     Ok(())
 }
 
-pub fn update(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str, value: &Vec<TypeValue>) -> Result<(), String> {
+pub fn update(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str, value: &Vec<Option<TypeValue>>) -> Result<(), String> {
     if let Some(symbol) = symbolTable.lock().unwrap().get_mut(identifier) {
-        symbol.Value = Some(value.clone());
+        symbol.Value = value.clone();
         Ok(())
     } else {
         Err(format!("Symbol '{}' not found in the table", identifier))
@@ -85,40 +85,66 @@ impl std::fmt::Display for Symbol {
         let size_str = self.size.map_or("N/A".to_string(), |s| format!("{}", s)).chars().take(17).collect::<String>();
         let constant_str = self.Is_Constant.map_or("N/A".to_string(), |c| format!("{}", c)).chars().take(17).collect::<String>();
         let address_str = self.Address.map_or("N/A".to_string(), |a| format!("{}", a)).chars().take(17).collect::<String>();
-        let value_str = self.Value.as_ref().map_or("N/A".to_string(), |v| format!("{:?}", v)).chars().take(17).collect::<String>();
         let empty_string = "".to_string();
         let mut value_arr: Vec<String> = vec![];
-
-        match &self.Value {
-            None => value_arr.push("N/A".to_string()),
-            Some(vec) => {
-                let mut string = "".to_string();
-                for value in vec {
-                    let element: String;
-                    match value {
-                        TypeValue::Integer(i) => element = format!("{}, ", i),
-                        TypeValue::Float(f) => element = format!("{}, ", f),
-                        TypeValue::Char(c) => { 
-                            if c.clone() as u16 == 0 {
-                                element = "'\\0', ".to_string()
-                            }
-                            else { 
-                                element = format!("'{}', ", c)
-                            }
-                        },
-                        _ => element = "".to_string(),
-                    }
-                    if string.len() + element.len() > 17 {
-                        value_arr.push(string);
-                        string = element.clone();
-                    }
-                    else {
-                        string += element.as_str();
-                    }
-                }
-                value_arr.push(string[..(string.len() - 2)].to_string());
-            }
+        
+        
+        if self.Value.len() == 0usize {
+            value_arr.push("N/A".to_string());
         }
+        else {
+            let mut string = "".to_string();
+            for value in &self.Value {
+                let element = match value.clone() {
+                    None => "N/A".to_string(),
+                    Some(t) => match t {
+                        TypeValue::Integer(i) => format!("{}, ", i),
+                        TypeValue::Float(f) => format!("{}, ", f),
+                        TypeValue::Char(c) => format!("{}, ", c),
+                        TypeValue::Array(_) => "".to_string(),
+                    }
+                };
+                if string.len() + element.len() > 17 {
+                    value_arr.push(string);
+                    string = element.clone();
+                }
+                else {
+                    string += element.as_str();
+                }
+            }
+            value_arr.push(string[..(string.len() - 2)].to_string());
+        }
+        
+        // match &self.Value {
+        //     None => value_arr.push("N/A".to_string()),
+        //     Some(vec) => {
+        //         let mut string = "".to_string();
+        //         for value in vec {
+        //             let element: String;
+        //             match value {
+        //                 TypeValue::Integer(i) => element = format!("{}, ", i),
+        //                 TypeValue::Float(f) => element = format!("{}, ", f),
+        //                 TypeValue::Char(c) => { 
+        //                     if c.clone() as u16 == 0 {
+        //                         element = "'\\0', ".to_string()
+        //                     }
+        //                     else { 
+        //                         element = format!("'{}', ", c)
+        //                     }
+        //                 },
+        //                 _ => element = "".to_string(),
+        //             }
+        //             if string.len() + element.len() > 17 {
+        //                 value_arr.push(string);
+        //                 string = element.clone();
+        //             }
+        //             else {
+        //                 string += element.as_str();
+        //             }
+        //         }
+        //         value_arr.push(string[..(string.len() - 2)].to_string());
+        //     }
+        // }
 
         // Write the row with formatted data
         writeln!(f, "| {:<17} | {:<17} | {:<17} | {:<17} | {:<17} | {:<17} |",

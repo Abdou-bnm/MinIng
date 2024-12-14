@@ -41,14 +41,14 @@ Declaration: Declaration = {
             match var {
                 Variable::Simple(name) => {
                     let Identifier = name.clone();
-                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, None, None)) {
+                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, Vec::new(), None)) {
                         Ok(t) => {},
                         Err(s) => eprintln!("Syntactic Error: {}", s),
                     }
                 },
                 Variable::Initialized(name, expr) => {
                     let Identifier = name.clone();
-                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, None, None)) {
+                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, Vec::new(), None)) {
                         Ok(t) => {},
                         Err(s) => {
                             eprintln!("Syntactic Error: {}", s);
@@ -73,7 +73,7 @@ Declaration: Declaration = {
             match var {
                 ArrayDecl::Simple(Identifier, Size) => {
                     let Identifier = Identifier.clone();
-                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, None, None)) {
+                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, Vec::new(), None)) {
                         Ok(t) => {},
                         Err(s) => {
                             eprintln!("Syntactic Error: {}", s);
@@ -83,7 +83,7 @@ Declaration: Declaration = {
                 },
                 ArrayDecl::Initialized(Identifier, Size, Value) => {
                     let Identifier = Identifier.clone();
-                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, None, None)) {
+                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, Vec::new(), None)) {
                         Ok(t) => {},
                         Err(s) => {
                             eprintln!("Syntactic Error: {}", s);
@@ -102,8 +102,8 @@ Declaration: Declaration = {
                     // Set initial value to first character (here it's second because first is double quote)
                         symbolTableValue = TypeValue::Char(Value.chars().nth(1).unwrap());
                     }
-                    let vector = vec!(symbolTableValue);
-                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, Some(vector), None)) {
+                    let vector = vec!(Some(symbolTableValue));
+                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, vector, None)) {
                         Ok(t) => {},
                         Err(s) => {
                             eprintln!("Syntactic Error: {}", s);
@@ -126,7 +126,7 @@ Declaration: Declaration = {
         
         for assign in &a {
             let Identifier = assign.var.clone(); 
-            match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(true), None, None, None)) {
+            match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(true), None, Vec::new(), None)) {
                 Ok(t) => {},
                 Err(s) => {
                     eprintln!("Syntactic Error: {}", s);
