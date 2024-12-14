@@ -381,7 +381,7 @@ impl SemanticAnalyzer {
                 }
             }
         }
-        if(!runt_act) {
+        if !runt_act {
             let mut symbol_table = SymbolTable.lock().unwrap();
             let symbol = symbol_table.get_mut(&assignment.var).unwrap();
             symbol.Value.as_mut().unwrap()[index as usize] = expr_value;
@@ -526,16 +526,35 @@ impl SemanticAnalyzer {
         // For READ, the expression should be a variable
         let Identifier = &read_stmt.variable;
         match SymbolTable.lock().unwrap().get(Identifier){
-            None => Err(format!("Undeclared variable '{}' inside READ instruction.", Identifier)),
+            None => return Err(format!("Undeclared variable '{}' inside READ instruction.", Identifier)),
             Some(x) => {
-                if x.Is_Constant.unwrap() == false {
-                    Ok(())
-                }
-                else {
-                    Err(format!("Cannot READ into constant '{}'.", Identifier))
+                if x.Is_Constant.unwrap() == true {
+                    return Err(format!("Cannot READ into constant '{}'.", Identifier))
                 }
             }
         }
+        let symbol = match SymbolTable.lock().unwrap().get_mut(Identifier) {
+            None => return Err(format!("Undeclared variable '{}' inside READ instruction.", Identifier)),
+            Some(symbol) => {
+                let symbolType = symbol
+                    .Type.clone()
+                    .ok_or_else(|| format!("Cannot READ into constant '{}'.", Identifier))?;
+                
+                match symbol.Value {
+                    None => symbol.Value = Some(Vec::new()),
+                    Some(_) => {}
+                }
+                
+                match symbolType {
+                    Types::Integer => symbol.Value.as_mut().unwrap().push(TypeValue::Integer(0)),
+                    Types::Float => symbol.Value.as_mut().unwrap().push(TypeValue::Float(0.0)),
+                    Types::Char => symbol.Value.as_mut().unwrap().push(TypeValue::Char('\0')),
+                    Types::Array(_, _) => {}
+                }
+            }
+        };
+        Ok(())
+        
     }
 
     fn validate_write(&mut self, write_stmt: &WriteStmt) -> Result<(), String> {

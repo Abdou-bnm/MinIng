@@ -48,8 +48,8 @@ fn main() {
         CONST FLOAT R = .6;
     }
     INSTRUCTION {
-        %% READ(V); %% crash
-        %% X = V + 4; %% crash
+        READ(V);
+        X = V + 4;
         Z = ( - ( 6.5 * 4.5 + 5.6) );
         X = ( - ( 5 * 9 + 6 ));
         Arr1[2] = ( - 5.6 );
@@ -68,6 +68,7 @@ fn main() {
         WRITE("B read value : ", B , "." );
         IF( B >= 0) { B = B + 1; } ELSE {B = 0;}
         %% Z = Arr4[0]; %% crash
+        WRITE(Arr2[1])
         FOR( B = 2 : 6 : 10) { B = B + 1; }
     }
     "#;
