@@ -6,7 +6,6 @@
 use logos::Logos;
 use crate::Lexer::error::CustomError;
 
-
 // Validation functions Copy,
 fn validate_identifier(lex: &logos::Lexer<Token>) -> Result<String, CustomError> {
     let Identifier = lex.slice().to_string();

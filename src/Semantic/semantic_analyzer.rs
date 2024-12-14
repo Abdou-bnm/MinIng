@@ -525,14 +525,23 @@ impl SemanticAnalyzer {
     fn validate_read(&mut self, read_stmt: &ReadStmt) -> Result<(), String> {
         // For READ, the expression should be a variable
         let Identifier = &read_stmt.variable;
-        match SymbolTable.lock().unwrap().get(Identifier){
-            None => return Err(format!("Undeclared variable '{}' inside READ instruction.", Identifier)),
-            Some(x) => {
-                if x.Is_Constant.unwrap() == true {
-                    return Err(format!("Cannot READ into constant '{}'.", Identifier))
+
+        let mut index = 0;
+        let symbol = SymbolTable.lock().unwrap().get_mut(Identifier).unwrap().clone();
+
+        match read_stmt.index.clone() {
+            None => index = 0,
+            Some(e) => {
+                let exprResult = self.evaluate_array_size(&e)?;
+                if exprResult >= symbol.size.ok_or_else(|| format!("Index Assignment used with Non-Array variable '{}'.", symbol.Identifier))? {
+                    return Err(format!("Index Assignment is out of bounds: {}", index));
                 }
+                index = exprResult;
             }
         }
+        
+        
+        // Need to implement the index into the program later, just need to figure out the problem with nabil
         let symbol = match SymbolTable.lock().unwrap().get_mut(Identifier) {
             None => return Err(format!("Undeclared variable '{}' inside READ instruction.", Identifier)),
             Some(symbol) => {
@@ -565,7 +574,7 @@ impl SemanticAnalyzer {
                     // String literals are always valid
                     continue;
                 },
-                WriteElement::Variable(var) => {
+                WriteElement::Variable(var, expr) => {
                     // Check if variable exists in symbol table
                     SymbolTable.lock().unwrap().get(var).ok_or_else(|| format!("Undefined variable '{}' in WRITE.", var))?;
                 }

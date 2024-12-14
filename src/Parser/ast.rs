@@ -138,11 +138,12 @@ impl ForStmt {
 #[derive(Debug, Clone)]
 pub struct ReadStmt {
     pub variable: String,
+    pub index: Option<Expr>,
 }
 
 impl ReadStmt {
-    pub fn new(variable: String) -> Self {
-        ReadStmt { variable }
+    pub fn new(variable: String, index: Option<Expr>) -> Self {
+        ReadStmt { variable, index }
     }
 }
 
@@ -162,7 +163,7 @@ impl WriteStmt {
 #[derive(Debug,Clone)]
 pub enum WriteElement {
     String(String),
-    Variable(String),
+    Variable(String, Option<Expr>),
 }
 
 // Conditions used in If statements and loops

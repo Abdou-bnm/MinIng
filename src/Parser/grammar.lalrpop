@@ -296,9 +296,8 @@ ForLoop: ForStmt = {
 };
 
 ReadStatement: ReadStmt = {
-    "READ" "(" <i:Identifier> ")" ";" => {
-        ReadStmt::new(i)
-    }
+    "READ" "(" <i:Identifier> ")" ";" => ReadStmt::new(i, None),
+    "READ" "(" <i: Identifier> "[" <e: Expr> "]" ")" ";" => ReadStmt::new(i, Some(e)),
 };
 
 WriteStatement: WriteStmt = {
@@ -315,7 +314,8 @@ WriteElementList: Vec<WriteElement> = {
 
 WriteElement: WriteElement = {
     StringLit => WriteElement::String(<>),
-    <i:"Identifier"> => WriteElement::Variable(i.parse().unwrap())
+    <i: Identifier> => WriteElement::Variable(i.parse().unwrap(), None),
+    <i: Identifier> "[" <e: Expr> "]" => WriteElement::Variable(i.parse().unwrap(), Some(e)),
 };
 
 Identifier: String = {

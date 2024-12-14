@@ -68,7 +68,7 @@ fn main() {
         WRITE("B read value : ", B , "." );
         IF( B >= 0) { B = B + 1; } ELSE {B = 0;}
         %% Z = Arr4[0]; %% crash
-        WRITE(Arr2[1])
+        WRITE(Arr2[1]);
         FOR( B = 2 : 6 : 10) { B = B + 1; }
     }
     "#;
