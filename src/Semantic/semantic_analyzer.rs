@@ -80,11 +80,6 @@ impl SemanticAnalyzer {
                 
                 match SymbolTable.lock().unwrap().get_mut(name) {
                     Some(e) => e.Value[0] = Some(value.clone()),
-                        // match e.Value {
-                        // None => e.Value = vec![Some(value.clone())],
-                        // Some(t) => return Err(format!("Variable '{}' is already initialized", name)),
-                    
-                    // Some(e) => e.Value.as_mut().unwrap()[0] = value.clone(),
                     None => return Err(format!("Syntactic Error: Undeclared variable '{}'.", name)),
                 };
 
@@ -139,8 +134,8 @@ impl SemanticAnalyzer {
                     if i >= size {
                         return Err(format!("Index out of bounds, Array of size {}, Got {}.", size, i));
                     }
-                    match symbol.Value[0].clone() {
-                        None => Err(format!("Variable '{}' used before being Assigned", symbol.Identifier)),
+                    match symbol.Value[i as usize].clone() {
+                        None => Err(format!("Cell '{}[{}]' used before being Assigned", symbol.Identifier, i)),
                         Some(val) => Ok(val)
                     }
                 }
@@ -224,6 +219,9 @@ impl SemanticAnalyzer {
                 match SymbolTable.lock().unwrap().get_mut(name) {
                     Some(symbol) => {
                         symbol.size = Some(size);
+                        for i in 0..size {
+                            symbol.Value.push(None);
+                        }
                     },
                     None => return Err(format!("Undeclared variable '{}'.", name)),
                 };
@@ -269,7 +267,7 @@ impl SemanticAnalyzer {
                 else {
                     vector = value
                         .chars()
-                        .map(|ch| TypeValue::Char(ch))
+                        .map(|ch| Some(TypeValue::Char(ch)))
                         .collect();
                 }
                 let mut index = 0;
@@ -305,10 +303,6 @@ impl SemanticAnalyzer {
             Some(e) => {
                 e.Value[0] = Some(value.clone());
             }
-            //     match e.Value.as_mut() {
-            //     None => e.Value = Some(vec![value.clone()]),
-            //     Some(t) => return Err(format!("Variable '{}' is already initialized", &Identifier)),
-            // }
             None => return Err(format!("Undeclared variable '{}'.", &Identifier)),
         };
         SemanticRules::validate_variable_declaration(
@@ -364,20 +358,12 @@ impl SemanticAnalyzer {
             Some(e) => {
                 let expressionResult = &self.parse_expr(&e)?; 
                 match expressionResult {
-                    // TypeValue::Integer(i) => match symbol.size.clone() {
-                    //     None => Err(format!("Undeclared variable '{}'.", &assignment.var)),
-                    //     Some(size) => {
-                    //         if i > &size {
-                    //             return Err(format!("Undeclared variable '{}'.", &assignment.var));
-                    //         }
-                    //     }
-                    // },
                     TypeValue::Integer(i) => {
                         let size = symbol.size
                             .clone()
                             .ok_or_else(|| format!("Index Assignment used with Non-Array variable '{}'.", symbol.Identifier))?;
                         if i.clone() >= size {
-                            return Err(format!("Undeclared variable '{}'.", &assignment.var));
+                            return Err(format!("Index out of bounds, Array of size {}, Got {}.", size, i));
                         }
                         index = i.clone();
                     }
@@ -541,9 +527,9 @@ impl SemanticAnalyzer {
                     return Err(format!("Index Assignment is out of bounds: {}", index));
                 }
                 index = exprResult;
+                vec![None::<Option<TypeValue>>];
             }
         }
-        
         
         // Need to implement the index into the program later, just need to figure out the problem with nabil
         match SymbolTable.lock().unwrap().get_mut(Identifier) {
@@ -553,19 +539,15 @@ impl SemanticAnalyzer {
                     .Type.clone()
                     .ok_or_else(|| format!("Cannot READ into constant '{}'.", Identifier))?;
                 
-                // match symbol.Value {
-                //     None => symbol.Value = Some(Vec::new()),
-                //     Some(_) => {}
-                // }
                 match symbolType {
-                    Types::Integer => symbol.Value.push(Some(TypeValue::Integer(0))),
-                    Types::Float => symbol.Value.push(Some(TypeValue::Float(0.0))),
-                    Types::Char => symbol.Value.push(Some(TypeValue::Char('\0'))),
+                    Types::Integer => symbol.Value[index as usize] = Some(TypeValue::Integer(0)),
+                    Types::Float => symbol.Value[index as usize] = Some(TypeValue::Float(0.0)),
+                    Types::Char => symbol.Value[index as usize] = Some(TypeValue::Char('\0')),
                     Types::Array(_, _) => {}
                 }
             }
         };
-                todo!();
+                // todo!();
         Ok(())
         
     }

@@ -65,10 +65,10 @@ pub enum Type{
 
 #[derive(Logos, Debug, PartialEq,Clone)]
 #[logos(error = CustomError)]
-#[logos(skip r"([ \t\f]+|%%[^\n]*)")]
+#[logos(skip r"([ \n\t\f]+|%%[^\n]*)")]
 pub enum Token {
-    #[regex(r"\n", newline_callback)]
-    NewLine,
+    // #[regex(r"\n", newline_callback)]
+    // NewLine,
 
     // Keywords
     #[token("VAR_GLOBAL", priority = 5)]

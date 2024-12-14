@@ -39,7 +39,7 @@ fn main() {
         CHAR Arr5[3] = "";
         CHAR Arr3[6] = "Hello";
         FLOAT Arr4[5];
-        FLOAT Arr1[B] = [1.2, .5124, 2.045];
+        FLOAT Arr1[B] = [1.2, .5124, 2.0];
         CHAR Arr2[10] = ['S', 't', 'r', 'i', 'n', 'g'];
         CHAR I = 'X';
     }
@@ -56,6 +56,7 @@ fn main() {
         X = (+1);
         X = (-B);
         WRITE(B);
+        READ(Arr4[1]);
         B = B + 4;
         Arr2[1] = '1';
         Arr2[3] = '1';
@@ -67,8 +68,10 @@ fn main() {
         WRITE("Enter a posivite number");
         WRITE("B read value : ", B , "." );
         IF( B >= 0) { B = B + 1; } ELSE {B = 0;}
-        %% Z = Arr4[0]; %% crash
-        WRITE(Arr2[1]);
+        %% Z = Arr4[0];
+        Arr1[3] = Arr4[1];
+        WRITE(Arr4[1]);
+        WRITE(Arr4[2]);
         FOR( B = 2 : 6 : 10) { B = B + 1; }
     }
     "#;
@@ -100,7 +103,6 @@ fn main() {
     let parser = grammar::ProgramParser::new();
     let result = parser.parse(input, lexer.enumerate().map(|(i, t)| t.map(|token| (i, token, i+1)).map_err(|e| e)));
     let program;
-    println!("parsing passed");
     match result {
         Ok(t) => {
             println!("Syntactic Analysis Successful.");

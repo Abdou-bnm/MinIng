@@ -96,11 +96,25 @@ impl std::fmt::Display for Symbol {
             let mut string = "".to_string();
             for value in &self.Value {
                 let element = match value.clone() {
-                    None => "N/A".to_string(),
+                    None => "N/A, ".to_string(),
                     Some(t) => match t {
                         TypeValue::Integer(i) => format!("{}, ", i),
-                        TypeValue::Float(f) => format!("{}, ", f),
-                        TypeValue::Char(c) => format!("{}, ", c),
+                        TypeValue::Float(f) => {
+                            if f.fract() == 0.0 {
+                                format!("{:.1}, ", f)
+                            }
+                            else { 
+                                format!("{}, ", f)
+                            }
+                        },
+                        TypeValue::Char(c) => {
+                            if c.clone() == '\0' {
+                                "'\\0', ".to_string()
+                            }
+                            else { 
+                                format!("'{}', ", c)
+                            }
+                        },
                         TypeValue::Array(_) => "".to_string(),
                     }
                 };
