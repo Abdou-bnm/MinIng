@@ -160,7 +160,7 @@ fn main() {
     // **************************************************** Quadruplets ****************************************************
 
     let mut quadruplet_generator = QuadrupletGenerator::new();
-    quadruplet_generator.gene(&program);
+    quadruplet_generator.generate_from_program(&program);
 
     println!("\nQuadruplets:");
     quadruplet_generator.print_quadruplets();

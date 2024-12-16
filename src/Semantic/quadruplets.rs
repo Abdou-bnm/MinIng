@@ -265,6 +265,28 @@ impl QuadrupletGenerator {
         }
     }
     
+    fn generate_assignment(&mut self, assignment: &Assignment) {
+        let result_temp = self.generate_expression(&assignment.expr);
+        
+        match &assignment.index {
+            None => self.add_quadruplet(Quadruplet::new(
+                        Operator::Assign,
+                        Some(result_temp),
+                        None,
+                        Some(format!("{}", assignment.var))
+                    )),
+            Some(index) => {
+                let index_temp = self.generate_expression(&assignment.index.clone().unwrap());
+                self.add_quadruplet(Quadruplet::new(
+                    Operator::Assign,
+                    Some(result_temp),
+                    None,
+                    Some(format!("{}[{}]", assignment.var, index_temp))
+                ))
+            }
+        }
+    }
+    
     fn generate_expression(&mut self, expr: &Expr) -> String {
         match expr {
             Expr::BinaryOp(left, op, right) => {
