@@ -17,6 +17,7 @@ use lalrpop_util::lalrpop_mod;
 use logos::Logos;
 use once_cell::sync::Lazy;
 use crate::Parser::ast::BinOp;
+use crate::Semantic::quadruplets::QuadrupletGenerator;
 use crate::Semantic::semantic_analyzer::SemanticAnalyzer;
 use crate::Semantic::ts::*;
 
@@ -156,4 +157,11 @@ fn main() {
 // **************************************************** Symbol Table ****************************************************
 // Full print of the symbol table
     print_table(&SymbolTable);
+    // **************************************************** Quadruplets ****************************************************
+
+    let mut quadruplet_generator = QuadrupletGenerator::new();
+    quadruplet_generator.gene(&program);
+
+    println!("\nQuadruplets:");
+    quadruplet_generator.print_quadruplets();
 }
