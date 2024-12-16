@@ -92,7 +92,6 @@ impl Quadruplet {
         }
     }
 
-
     pub fn to_string(&self) -> String {
         format!(
             "({:?}, {}, {}, {})",
@@ -104,7 +103,6 @@ impl Quadruplet {
     }
 }
 
-
 #[derive(Debug)]
 pub struct QuadrupletGenerator {
     quadruplets: Vec<Quadruplet>,
@@ -112,7 +110,6 @@ pub struct QuadrupletGenerator {
 }
 
 impl QuadrupletGenerator {
-
     pub fn new() -> Self {
         QuadrupletGenerator {
             quadruplets: Vec::new(),
@@ -135,138 +132,139 @@ impl QuadrupletGenerator {
         // Handle global variable declarations if any
         if let Some(globals) = &program.global {
             for decl in globals {
-                match decl {
-                    // Handling simple variable declarations
-                    Declaration::Variables(type_, variables) => {
-                        for var in variables {
-                            match var {
-                                Variable::Simple(name) => {
-                                    // For uninitialized variables, we might just add a placeholder
-                                    self.add_quadruplet(Quadruplet::new(
-                                        Operator::Assign,
-                                        Some("0".to_string()),  // Default initialization
-                                        None,
-                                        Some(name.clone())
-                                    ));
-                                },
-                                Variable::Initialized(name, expr) => {
-                                    // For initialized variables, generate expression and assign
-                                    let result_temp = self.generate_expression(expr);
-
-                                    self.add_quadruplet(Quadruplet::new(
-                                        Operator::Assign,
-                                        Some(result_temp),
-                                        None,
-                                        Some(name.clone())
-                                    ));
-                                }
-                            }
-                        }
-                    },
-
-                    // Handling array declarations
-                    Declaration::Array(type_, array_decls) => {
-                        for arr in array_decls {
-                            match arr {
-                                ArrayDecl::Simple(name, size) => {
-                                    // For uninitialized arrays, we might just generate a size quadruplet
-                                    let size_temp = self.generate_expression(size);
-
-                                    self.add_quadruplet(Quadruplet::new(
-                                        Operator::Assign,
-                                        Some(size_temp),
-                                        None,
-                                        Some(format!("size_{}", name))
-                                    ));
-                                },
-                                ArrayDecl::Initialized(name, size, initializers) => {
-                                    // Generate size quadruplet
-                                    let size_temp = self.generate_expression(size);
-
-                                    self.add_quadruplet(Quadruplet::new(
-                                        Operator::Assign,
-                                        Some(size_temp),
-                                        None,
-                                        Some(format!("size_{}", name))
-                                    ));
-
-                                    // Initialize array elements
-                                    for (index, init_expr) in initializers.iter().enumerate() {
-                                        let init_temp = self.generate_expression(init_expr);
-
-                                        self.add_quadruplet(Quadruplet::new(
-                                            Operator::Assign,
-                                            Some(init_temp),
-                                            None,
-                                            Some(format!("{}[{}]", name, index))
-                                        ));
-                                    }
-                                },
-                                ArrayDecl::InitializedString(name, size, string_val) => {
-                                    // Generate size quadruplet
-                                    let size_temp = self.generate_expression(size);
-
-                                    self.add_quadruplet(Quadruplet::new(
-                                        Operator::Assign,
-                                        Some(size_temp),
-                                        None,
-                                        Some(format!("size_{}", name))
-                                    ));
-
-                                    // Initialize array with string characters
-                                    for (index, ch) in string_val.chars().enumerate() {
-                                        self.add_quadruplet(Quadruplet::new(
-                                            Operator::Assign,
-                                            Some(ch.to_string()),
-                                            None,
-                                            Some(format!("{}[{}]", name, index))
-                                        ));
-                                    }
-                                }
-                            }
-                        }
-                    },
-
-                    // Handling constant declarations (though this is typically done in the declarations section)
-                    Declaration::Constant(type_, assignments) => {
-                        for assign in assignments {
-                            let result_temp = self.generate_expression(&assign.expr);
-
-                            self.add_quadruplet(Quadruplet::new(
-                                Operator::Assign,
-                                Some(result_temp),
-                                None,
-                                Some(assign.var.clone())
-                            ));
-                        }
-                    }
-                }
+                self.generate_declaration(decl);
             }
         }
 
         // Handle declarations
         if let Some(decls) = &program.decls {
             for decl in decls {
-                match decl {
-                    Declaration::Constant(type_, assignments) => {
-                        for assign in assignments {
-                            let result_temp = self.generate_expression(&assign.expr);
-
-                            self.add_quadruplet(Quadruplet::new(
-                                Operator::Assign,
-                                Some(result_temp),
-                                None,
-                                Some(assign.var.clone())
-                            ));
-                        }
-                    },
-                    // Add handling for other declaration types if needed
-                    _ => {}
-                }
+                self.generate_declaration(decl);
+            }
+        }
+        
+        if let Some(instructions) = &program.inst {
+            for instruction in instructions {
+                self.generate_instruction(instruction);
             }
         }
     }
 
+    fn generate_declaration(&mut self, declaration: &Declaration) {
+        match declaration {
+            // Handling simple variable declarations
+            Declaration::Variables(type_, variables) => self.generate_declarations_variable(type_, variables),
+
+            // Handling array declarations
+            Declaration::Array(type_, array_decls) => self.generate_declarations_array(type_, array_decls),
+
+            // Handling constant declarations (though this is typically done in the declarations section)
+            Declaration::Constant(type_, assignments) => self.generate_declarations_constant(type_, assignments),
+        }
+    }
+    
+    fn generate_declarations_variable(&mut self, type_: &Type, variables: &Vec<Variable>) {
+        for var in variables {
+            match var {
+                Variable::Simple(name) => {
+                    // For uninitialized variables, we might just add a placeholder
+                    self.add_quadruplet(Quadruplet::new(
+                        Operator::Assign,
+                        Some("0".to_string()),  // Default initialization
+                        None,
+                        Some(name.clone())
+                    ));
+                },
+                Variable::Initialized(name, expr) => {
+                    // For initialized variables, generate expression and assign
+                    let result_temp = self.generate_expression(expr);
+
+                    self.add_quadruplet(Quadruplet::new(
+                        Operator::Assign,
+                        Some(result_temp),
+                        None,
+                        Some(name.clone())
+                    ));
+                }
+            }
+        }
+    }
+    
+    fn generate_declarations_array(&mut self, type_: &Type, array_decls: &Vec<ArrayDecl>) {
+        for arr in array_decls {
+            match arr {
+                ArrayDecl::Simple(name, size) => {
+                    // For uninitialized arrays, we might just generate a size quadruplet
+                    let size_temp = self.generate_expression(size);
+
+                    self.add_quadruplet(Quadruplet::new(
+                        Operator::Assign,
+                        Some(size_temp),
+                        None,
+                        Some(format!("size_{}", name))
+                    ));
+                },
+                ArrayDecl::Initialized(name, size, initializers) => {
+                    // Generate size quadruplet
+                    let size_temp = self.generate_expression(size);
+
+                    self.add_quadruplet(Quadruplet::new(
+                        Operator::Assign,
+                        Some(size_temp),
+                        None,
+                        Some(format!("size_{}", name))
+                    ));
+
+                    // Initialize array elements
+                    for (index, init_expr) in initializers.iter().enumerate() {
+                        let init_temp = self.generate_expression(init_expr);
+
+                        self.add_quadruplet(Quadruplet::new(
+                            Operator::Assign,
+                            Some(init_temp),
+                            None,
+                            Some(format!("{}[{}]", name, index))
+                        ));
+                    }
+                },
+                ArrayDecl::InitializedString(name, size, string_val) => {
+                    // Generate size quadruplet
+                    let size_temp = self.generate_expression(size);
+
+                    self.add_quadruplet(Quadruplet::new(
+                        Operator::Assign,
+                        Some(size_temp),
+                        None,
+                        Some(format!("size_{}", name))
+                    ));
+
+                    // Initialize array with string characters
+                    for (index, ch) in string_val.chars().enumerate() {
+                        self.add_quadruplet(Quadruplet::new(
+                            Operator::Assign,
+                            Some(ch.to_string()),
+                            None,
+                            Some(format!("{}[{}]", name, index))
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    
+    fn generate_declarations_constant(&mut self, type_: &Type, assignments: &Vec<Assignment>) {
+        for assign in assignments {
+            let result_temp = self.generate_expression(&assign.expr);
+
+            self.add_quadruplet(Quadruplet::new(
+                Operator::Assign,
+                Some(result_temp),
+                None,
+                Some(assign.var.clone())
+            ));
+        }
+    }
+    
     fn generate_expression(&mut self, expr: &Expr) -> String {
         match expr {
             Expr::BinaryOp(left, op, right) => {
@@ -311,10 +309,10 @@ impl QuadrupletGenerator {
             Expr::Literal(lit) => {
                 // For literals, we can use their string representation
                 match lit {
-                    crate::Parser::ast::TypeValue::Integer(i) => i.to_string(),
-                    crate::Parser::ast::TypeValue::Float(f) => f.to_string(),
-                    crate::Parser::ast::TypeValue::Char(c) => c.to_string(),
-                    crate::Parser::ast::TypeValue::Array(_) => {
+                    TypeValue::Integer(i) => i.to_string(),
+                    TypeValue::Float(f) => f.to_string(),
+                    TypeValue::Char(c) => c.to_string(),
+                    TypeValue::Array(_) => {
                         // This case might need more sophisticated handling
                         "array_literal".to_string()
                     }
@@ -328,7 +326,7 @@ impl QuadrupletGenerator {
         // TODO: Implement more complex condition handling
         // For now, this is a simplistic implementation
         let condition_temp = match &if_stmt.condition {
-            crate::Parser::ast::Condition::Basic(basic_cond) => {
+            Condition::Basic(basic_cond) => {
                 let left_temp = self.generate_expression(&basic_cond.left);
                 let right_temp = self.generate_expression(&basic_cond.right);
 
@@ -336,12 +334,12 @@ impl QuadrupletGenerator {
 
                 // Convert RelOp to comparison operator
                 let operator = match basic_cond.operator {
-                    crate::Parser::ast::RelOp::Gt => Operator::GreaterThan,
-                    crate::Parser::ast::RelOp::Lt => Operator::LessThan,
-                    crate::Parser::ast::RelOp::Ge => Operator::GreaterThanOrEqual,
-                    crate::Parser::ast::RelOp::Le => Operator::LessThanOrEqual,
-                    crate::Parser::ast::RelOp::Eq => Operator::Equal,
-                    crate::Parser::ast::RelOp::Ne => Operator::NotEqual,
+                    RelOp::Gt => Operator::GreaterThan,
+                    RelOp::Lt => Operator::LessThan,
+                    RelOp::Ge => Operator::GreaterThanOrEqual,
+                    RelOp::Le => Operator::LessThanOrEqual,
+                    RelOp::Eq => Operator::Equal,
+                    RelOp::Ne => Operator::NotEqual,
                 };
 
                 // Add comparison quadruplet
@@ -472,7 +470,8 @@ impl QuadrupletGenerator {
                 Some(index_temp.clone()),
                 Some(format!("{}[{}]", read_stmt.variable, index_temp))
             ));
-        } else {
+        }
+        else {
             // Simple variable read
             self.add_quadruplet(Quadruplet::new(
                 Operator::Read,
@@ -486,38 +485,42 @@ impl QuadrupletGenerator {
     /// Generate quadruplets for a write statement
     fn generate_write_statement(&mut self, write_stmt: &WriteStmt) {
         for element in &write_stmt.elements {
-            match element {
-                WriteElement::String(s) => {
+            self.generate_write_element(element);     
+        }
+    }
+    
+    fn generate_write_element(&mut self, write_element: &WriteElement) {
+        match write_element {
+            WriteElement::String(s) => {
+                self.add_quadruplet(Quadruplet::new(
+                    Operator::Write,
+                    Some(s.clone()),
+                    None,
+                    None
+                ));
+            },
+            WriteElement::Variable(var, index) => {
+                if let Some(idx) = index {
+                    let index_temp = self.generate_expression(idx);
+        
+                    // Write array element
                     self.add_quadruplet(Quadruplet::new(
                         Operator::Write,
-                        Some(s.clone()),
+                        Some(format!("{}[{}]", var, index_temp)),
                         None,
                         None
                     ));
-                },
-                WriteElement::Variable(var, index) => {
-                    if let Some(idx) = index {
-                        let index_temp = self.generate_expression(idx);
-
-                        // Write array element
-                        self.add_quadruplet(Quadruplet::new(
-                            Operator::Write,
-                            Some(format!("{}[{}]", var, index_temp)),
-                            None,
-                            None
-                        ));
-                    } else {
-                        // Write simple variable
-                        self.add_quadruplet(Quadruplet::new(
-                            Operator::Write,
-                            Some(var.clone()),
-                            None,
-                            None
-                        ));
-                    }
+                } else {
+                    // Write simple variable
+                    self.add_quadruplet(Quadruplet::new(
+                        Operator::Write,
+                        Some(var.clone()),
+                        None,
+                        None
+                    ));
                 }
             }
-        }
+        }   
     }
 
     pub fn generate_temp(&mut self) -> String {
@@ -556,7 +559,7 @@ fn type_value_to_string(value: &TypeValue) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Parser::ast::TypeValue;
+    use TypeValue;
 
     #[test]
     fn test_quadruplet_generation() {
