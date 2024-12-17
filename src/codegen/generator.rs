@@ -1,9 +1,9 @@
 use cranelift::prelude::*;
-use cranelift_codegen::ir::{Function, InstBuilder};
+use cranelift_codegen::ir::{Block as CraneliftBlock, Function, InstBuilder};
 use cranelift_codegen::Context;
 use cranelift_jit::{JITBuilder, JITModule};
 use std::sync::Mutex;
-use crate::Parser::ast::{Expr, TypeValue, BinOp, Assignment,Condition, RelOp, LogOp};
+use crate::Parser::ast::{Assignment, BinOp, Condition, Declaration, Expr, ForStmt, IfStmt, Instruction, LogOp, Program, RelOp, TypeValue};
 use crate::Semantic::ts::{insert, update, remove, Symbol, Types}; // Use your provided symbol table functions
 
 
@@ -117,22 +117,55 @@ impl CodeGenerator {
         }
     }
 
+
+    fn compile_declaration(
+        &mut self,
+        builder: &mut FunctionBuilder,
+        decl: &Declaration,
+    ) -> Result<(), String> {
+        match decl {
+            Declaration::Variables(typ, vars) => {
+                for var in vars {
+                    let symbol = Symbol::new(var.name.clone(), Some(typ.clone()), None, None, None, None);
+                    insert(&SymbolTable, symbol)?;
+                }
+            }
+            Declaration::Array(typ, array_decls) => {
+                // Logic to handle array declarations
+                for array_decl in array_decls {
+                    let symbol = Symbol::new(array_decl.name.clone(), Some(Types::Array(Box::new(typ.clone()), array_decl.size)), None, None, None, Some(array_decl.size));
+                    insert(&SymbolTable, symbol)?;
+                }
+            }
+            Declaration::Constant(typ, assignments) => {
+                // Handle constant declarations
+                for assignment in assignments {
+                    let symbol = Symbol::new(assignment.var.clone(), Some(typ.clone()), Some(true), None, None, None);
+                    insert(&SymbolTable, symbol)?;
+                }
+            }
+        }
+        Ok(())
+    }
+    
+
     fn compile_assignment(
         &mut self,
         builder: &mut FunctionBuilder,
         assignment: &Assignment
     ) -> Result<(), String> {
-        let value = self.compile_expr(builder, &assignment.expr);
-        
+        let value = self.compile_expr(builder, &assignment.expr)?;
+    
         let mut table = SymbolTable.lock().map_err(|_| "Symbol table lock poisoned")?;
         if let Some(symbol) = table.get_mut(&assignment.var) {
-            // Update the symbol's value
-            symbol.Value = Some(vec![TypeValue::Integer(0)]); // Replace placeholder logic
+            // Store the computed value back into the symbol table
+            symbol.Value = Some(vec![self.get_value_type(builder, value).ok_or("Failed to get value type")?]);
             Ok(())
         } else {
             Err(format!("Variable '{}' is not declared", assignment.var))
         }
     }
+    
     
     
     // Helper method to convert Cranelift Value to TypeValue
@@ -151,47 +184,260 @@ impl CodeGenerator {
     }
 
 
-    fn compile_condition(
-        &mut self, 
-        builder: &mut FunctionBuilder, 
-        condition: &Condition
-    ) -> Value {
-        match condition {
-            Condition::Not(inner_condition) => {
-                let inner_value = self.compile_condition(builder, inner_condition);
-                // Create the constant first, separately
-                let one = builder.ins().iconst(types::I32, 1);
-                // Then use it in the XOR operation
-                builder.ins().bxor(inner_value, one)
-            },
-            Condition::Logic(left, op, right) => {
-                let left_value = self.compile_condition(builder, left);
-                let right_value = self.compile_condition(builder, right);
-                
-                match op {
-                    LogOp::And => builder.ins().band(left_value, right_value),
-                    LogOp::Or => builder.ins().bor(left_value, right_value),
+    fn compile_if_statement(
+        &mut self,
+        builder: &mut FunctionBuilder,
+        if_stmt: &IfStmt,
+    ) -> Result<(), String> {
+        let then_block = builder.create_block();
+        let merge_block = builder.create_block();
+        let else_block = if if_stmt.else_block.is_some() {
+            Some(builder.create_block())
+        } else {
+            None
+        };
+
+        // Compile condition
+        let condition_value = self.compile_condition(builder, &if_stmt.condition)?;
+        
+        match else_block {
+            Some(else_blk) => {
+                builder.ins().brnz(condition_value, then_block, &[]);
+                builder.ins().jump(else_blk, &[]);
+            }
+            None => {
+                builder.ins().brnz(condition_value, then_block, &[]);
+                builder.ins().jump(merge_block, &[]);
+            }
+        }
+
+        // Compile then block
+        builder.switch_to_block(then_block);
+        builder.seal_block(then_block);
+        
+        for inst in &if_stmt.then_block {
+            self.compile_instruction(builder, inst)?;
+        }
+        builder.ins().jump(merge_block, &[]);
+
+        // Compile else block if it exists
+        if let Some(else_blk) = else_block {
+            builder.switch_to_block(else_blk);
+            builder.seal_block(else_blk);
+            
+            if let Some(else_instructions) = &if_stmt.else_block {
+                for inst in else_instructions {
+                    self.compile_instruction(builder, inst)?;
                 }
-            },
+            }
+            builder.ins().jump(merge_block, &[]);
+        }
+
+        builder.switch_to_block(merge_block);
+        builder.seal_block(merge_block);
+
+        Ok(())
+    }
+
+    fn compile_for_loop(
+        &mut self,
+        builder: &mut FunctionBuilder,
+        for_stmt: &ForStmt,
+    ) -> Result<(), String> {
+        let header_block = builder.create_block();
+        let body_block = builder.create_block();
+        let increment_block = builder.create_block();
+        let exit_block = builder.create_block();
+
+        // Compile initialization
+        self.compile_assignment(builder, &for_stmt.init)?;
+
+        // Jump to header block
+        builder.ins().jump(header_block, &[]);
+        builder.switch_to_block(header_block);
+
+        // Compile condition
+        let condition_value = self.compile_expr(builder, &for_stmt.condition)?;
+        builder.ins().brnz(condition_value, body_block, &[]);
+        builder.ins().jump(exit_block, &[]);
+
+        // Compile loop body
+        builder.switch_to_block(body_block);
+        builder.seal_block(body_block);
+
+        for inst in &for_stmt.body {
+            self.compile_instruction(builder, inst)?;
+        }
+        builder.ins().jump(increment_block, &[]);
+
+        // Compile increment
+        builder.switch_to_block(increment_block);
+        builder.seal_block(increment_block);
+        self.compile_expr(builder, &for_stmt.step)?;
+        builder.ins().jump(header_block, &[]);
+
+        builder.seal_block(header_block);
+        builder.switch_to_block(exit_block);
+        builder.seal_block(exit_block);
+
+        Ok(())
+    }
+
+    fn compile_condition(
+        &mut self,
+        builder: &mut FunctionBuilder,
+        condition: &Condition,
+    ) -> Result<Value, String> {
+        match condition {
+            Condition::Not(cond) => {
+                let inner_value = self.compile_condition(builder, cond)?;
+                Ok(builder.ins().bnot(inner_value))
+            }
+            Condition::Logic(left, op, right) => {
+                let left_value = self.compile_condition(builder, left)?;
+                let right_value = self.compile_condition(builder, right)?;
+                match op {
+                    LogOp::And => Ok(builder.ins().band(left_value, right_value)),
+                    LogOp::Or => Ok(builder.ins().bor(left_value, right_value)),
+                }
+            }
             Condition::Basic(basic_cond) => {
-                let left = self.compile_expr(builder, &basic_cond.left);
-                let right = self.compile_expr(builder, &basic_cond.right);
+                let left_value = self.compile_expr(builder, &basic_cond.left)?;
+                let right_value = self.compile_expr(builder, &basic_cond.right)?;
                 
                 match basic_cond.operator {
-                    RelOp::Gt => builder.ins().icmp(IntCC::SignedGreaterThan, left, right),
-                    RelOp::Lt => builder.ins().icmp(IntCC::SignedLessThan, left, right),
-                    RelOp::Ge => builder.ins().icmp(IntCC::SignedGreaterThanOrEqual, left, right),
-                    RelOp::Le => builder.ins().icmp(IntCC::SignedLessThanOrEqual, left, right),
-                    RelOp::Eq => builder.ins().icmp(IntCC::Equal, left, right),
-                    RelOp::Ne => builder.ins().icmp(IntCC::NotEqual, left, right),
+                    RelOp::Gt => Ok(builder.ins().icmp(IntCC::SignedGreaterThan, left_value, right_value)),
+                    RelOp::Lt => Ok(builder.ins().icmp(IntCC::SignedLessThan, left_value, right_value)),
+                    RelOp::Ge => Ok(builder.ins().icmp(IntCC::SignedGreaterThanOrEqual, left_value, right_value)),
+                    RelOp::Le => Ok(builder.ins().icmp(IntCC::SignedLessThanOrEqual, left_value, right_value)),
+                    RelOp::Eq => Ok(builder.ins().icmp(IntCC::Equal, left_value, right_value)),
+                    RelOp::Ne => Ok(builder.ins().icmp(IntCC::NotEqual, left_value, right_value)),
                 }
             }
         }
     }
-    
-    
-    
-    pub fn compile(&mut self, expr: &Expr) {
+
+    fn compile_instruction(
+        &mut self,
+        builder: &mut FunctionBuilder,
+        instruction: &Instruction,
+    ) -> Result<(), String> {
+        match instruction {
+            Instruction::Assign(assign) => self.compile_assignment(builder, assign),
+            Instruction::If(if_stmt) => self.compile_if_statement(builder, if_stmt),
+            Instruction::For(for_stmt) => self.compile_for_loop(builder, for_stmt),
+            Instruction::Read(read_stmt) => self.compile_read(builder, read_stmt),
+            Instruction::Write(write_stmt) => self.compile_write(builder, write_stmt),
+        }
+    }
+
+
+    fn allocate_array(
+        &mut self,
+        builder: &mut FunctionBuilder,
+        size: usize,
+        elem_type: Type,
+    ) -> Value {
+        // Allocate memory for array
+        let size_val = builder.ins().iconst(types::I32, size as i64);
+        let elem_size = match elem_type {
+            types::I32 => 4,
+            types::F32 => 4,
+            types::I8 => 1,
+            _ => panic!("Unsupported array element type"),
+        };
+        let total_size = builder.ins().imul_imm(size_val, elem_size);
+        
+        // Call memory allocation function (you'll need to implement or link this)
+        // This is a placeholder - you'll need to implement actual memory allocation
+        builder.ins().iconst(types::I64, 0)
+    }
+
+    fn compile_array_access(
+        &mut self,
+        builder: &mut FunctionBuilder,
+        name: &str,
+        index: &Expr,
+    ) -> Result<Value, String> {
+        let table = SymbolTable.lock().map_err(|_| "Symbol table lock poisoned")?;
+        let symbol = table.get(name).ok_or_else(|| format!("Array '{}' not found", name))?;
+        
+        let array_size = symbol.Size.ok_or_else(|| "Not an array")?;
+        let index_val = self.compile_expr(builder, index);
+        
+        // Add bounds checking
+        let size_const = builder.ins().iconst(types::I32, array_size as i64);
+        let is_in_bounds = builder.ins().icmp(IntCC::UnsignedLessThan, index_val, size_const);
+        
+        let in_bounds_block = builder.create_block();
+        let out_of_bounds_block = builder.create_block();
+        let merge_block = builder.create_block();
+        
+        builder.ins().brnz(is_in_bounds, in_bounds_block, &[]);
+        builder.ins().jump(out_of_bounds_block, &[]);
+        
+        // Handle out of bounds
+        builder.switch_to_block(out_of_bounds_block);
+        // Add error handling here
+        builder.ins().trap(TrapCode::User(1));
+        
+        // Handle in bounds access
+        builder.switch_to_block(in_bounds_block);
+        // Implement actual array element access
+        // This is a placeholder - you'll need to implement actual array access
+        Ok(builder.ins().iconst(types::I32, 0))
+    }
+
+    fn compile_read(
+        &mut self,
+        builder: &mut FunctionBuilder,
+        var_name: &str,
+    ) -> Result<(), String> {
+        // Implementation for read operation
+        // You'll need to implement or link to actual I/O functions
+        unimplemented!("Read operation not yet implemented")
+    }
+
+    fn compile_write(
+        &mut self,
+        builder: &mut FunctionBuilder,
+        expr: &Expr,
+    ) -> Result<(), String> {
+        // Implementation for write operation
+        let value = self.compile_expr(builder, expr)?;
+        // You'll need to implement or link to actual I/O functions
+        unimplemented!("Write operation not yet implemented")
+    }
+
+    fn type_check(
+        &self,
+        expected: Type,
+        got: Type,
+    ) -> Result<(), String> {
+        if expected != got {
+            Err(format!("Type mismatch: expected {:?}, got {:?}", expected, got))
+        } else {
+            Ok(())
+        }
+    }
+
+    fn convert_type(
+        &mut self,
+        builder: &mut FunctionBuilder,
+        value: Value,
+        from: Type,
+        to: Type,
+    ) -> Result<Value, String> {
+        match (from, to) {
+            (types::I32, types::F32) => Ok(builder.ins().fcvt_from_sint(types::F32, value)),
+            (types::F32, types::I32) => Ok(builder.ins().fcvt_to_sint(types::I32, value)),
+            (from, to) if from == to => Ok(value),
+            _ => Err(format!("Unsupported type conversion from {:?} to {:?}", from, to)),
+        }
+    }
+
+    // Main compile method for the entire program
+    pub fn compile(&mut self, program: &Program) -> Result<(), String> {
         let mut func = Function::new();
         let mut builder_context = std::mem::take(&mut self.builder_context);
         let mut builder = FunctionBuilder::new(&mut func, &mut builder_context);
@@ -200,13 +446,32 @@ impl CodeGenerator {
         builder.append_block_params_for_function_params(entry_block);
         builder.switch_to_block(entry_block);
 
-        self.compile_expr(&mut builder, expr);
-        
-        builder.ins().return_(&[]);
+        // Compile global declarations
+        if let Some(globals) = &program.global {
+            for decl in globals {
+                self.compile_condition(builder, decl)?;
+            }
+        }
 
+        // Compile other declarations
+        if let Some(decls) = &program.decls {
+            for decl in decls {
+                self.compile_condition(builder, decl)?;
+            }
+        }
+
+        // Compile instructions
+        if let Some(instructions) = &program.inst {
+            for inst in instructions {
+                self.compile_instruction(builder, inst)?;
+            }
+        }
+
+        builder.ins().return_(&[]);
         builder.seal_all_blocks();
 
-        println!("{:?}", func);
+        self.builder_context = builder_context;
+        Ok(())
     }
 
     pub fn test_setup(&mut self) -> Result<(), String> {
