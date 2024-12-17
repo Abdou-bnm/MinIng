@@ -1,8 +1,82 @@
-Generated IR:
+running 8 tests
+Running test: test_basic_conditions
+Running test: test_char_literal
+Running test: test_codegen_setup
+Running test: test_float_literal
+Running test: test_integer_literal
+Running test: test_nested_binary_operation
+Running test: test_simple_binary_operations
+Running test: test_variable_assignment
+Code generator setup test successful!
+test codegen::tests::tests::test_basic_conditions ... ok
 function u0:0() fast {
 block0:
     v0 = iconst.i32 5
     v1 = iconst.i32 3
     v2 = iadd v0, v1  ; v0 = 5, v1 = 3
-    return v2
+    v3 = iconst.i32 10
+    v4 = iconst.i32 2
+    v5 = isub v3, v4  ; v3 = 10, v4 = 2
+    v6 = imul v2, v5
+    return
 }
+
+function u0:0() fast {
+block0:
+    v0 = iconst.i32 5
+    v1 = iconst.i32 3
+    v2 = iadd v0, v1  ; v0 = 5, v1 = 3
+    return
+}
+
+function u0:0() fast {
+block0:
+    v0 = iconst.i32 42
+    return
+}
+
+function u0:0() fast {
+block0:
+    v0 = f32const 0x1.91eb86p1
+    return
+}
+
+function u0:0() fast {
+block0:
+    v0 = iconst.i8 65
+    return
+}
+
+test codegen::tests::tests::test_codegen_setup ... okfunction u0:0() fast {
+block0:
+    v0 = iconst.i32 10
+    v1 = iconst.i32 4
+    v2 = isub v0, v1  ; v0 = 10, v1 = 4
+    return
+}
+
+
+function u0:0() fast {
+block0:
+    v0 = iconst.i32 6
+    v1 = iconst.i32 7
+    v2 = imul v0, v1  ; v0 = 6, v1 = 7
+    return
+}
+
+test codegen::tests::tests::test_variable_assignment ... ok
+function u0:0() fast {
+block0:
+    v0 = iconst.i32 15
+    v1 = iconst.i32 3
+    v2 = sdiv v0, v1  ; v0 = 15, v1 = 3
+    return
+}
+
+test codegen::tests::tests::test_nested_binary_operation ... ok
+test codegen::tests::tests::test_integer_literal ... ok
+test codegen::tests::tests::test_float_literal ... ok
+test codegen::tests::tests::test_char_literal ... ok
+test codegen::tests::tests::test_simple_binary_operations ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
