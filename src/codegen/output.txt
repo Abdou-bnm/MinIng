@@ -1,24 +1,28 @@
-running 2 tests
-Code generator setup test successful!
-function u0:0() fast {
-block0:
-    v0 = iconst.i32 42
-    return
-}
+running 8 tests
+thread 'codegen::tests::codegen_tests::test_loops' panicked at src\codegen\generator.rstest codegen::tests::codegen_tests::test_binary_operations ... :ok92
+:test codegen::tests::codegen_tests::test_read_write_operations ... 21ok:
 
-test codegen::tests::test_basic_setup ... ok
-function u0:0() fast {
-block0:
-    v0 = f32const 0x1.91eb86p1
-    return
-}
+Variable 'i' not found in symbol table
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+thread 'codegen::tests::codegen_tests::test_array_operationstest codegen::tests::codegen_tests::test_conditions_and_if_statements ... ' panicked at oksrc\codegen\tests.rs
+:test codegen::tests::codegen_tests::test_conditions_and_if_statements ... 294ok:
+9test codegen::tests::codegen_tests::test_loops ... :
+FAILEDassertion failed: codegen.compile_assignment(&mut builder, &array_assign).is_ok()
 
-function u0:0() fast {
-block0:
-    v0 = iconst.i8 65
-    return
-}
+thread 'test codegen::tests::codegen_tests::test_array_operations ... codegen::tests::codegen_tests::test_complex_expressionsFAILED' panicked at  
+src\codegen\generator.rs:73:48:
+called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+thread 'codegen::tests::codegen_tests::test_variable_assignmentstest codegen::tests::codegen_tests::test_complex_expressions ... ' panicked at FAILEDsrc\codegen\tests.rs
+:100:9:
+assertion failed: codegen.compile_assignment(&mut builder, &simple_assign).is_ok()
+test codegen::tests::codegen_tests::test_variable_assignments ... FAILED
 
-test codegen::tests::test_literal_expressions ... ok
+failures:
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+failures:
+    codegen::tests::codegen_tests::test_array_operations
+    codegen::tests::codegen_tests::test_complex_expressions
+    codegen::tests::codegen_tests::test_loops
+    codegen::tests::codegen_tests::test_variable_assignments
+
+test result: FAILED. 4 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
