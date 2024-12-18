@@ -3,9 +3,10 @@ use cranelift_codegen::ir::{Function, GlobalValue, InstBuilder};
 use cranelift_codegen::Context;
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{default_libcall_names, DataContext, Linkage, Module, ModuleError};
+use core::panic;
 use std::sync::Mutex;
 use crate::Parser::ast::{Assignment, BinOp, Condition, Expr, ForStmt, IfStmt, Instruction, LogOp, Loop, ReadStmt, RelOp, Statement, TypeValue, WriteElement, WriteStmt};
-use crate::Semantic::ts::{insert, update, remove, Symbol, Types}; // Use your provided symbol table functions
+use crate::Semantic::ts::{insert, update, remove, Symbol, Types}; 
 
 
 use once_cell::sync::Lazy;
@@ -15,12 +16,13 @@ use lalrpop_util::lalrpop_mod;
 lalrpop_mod!(pub grammar, "/Parser/grammar.rs");
 pub static SymbolTable: Lazy<Mutex<HashMap<String, Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
+
 pub struct CodeGenerator {
     pub ctx: Context,
     pub builder_context: FunctionBuilderContext,
     module: JITModule,
     variables: HashMap<String, Variable>,
-    variable_count: usize,  // Changed from next_variable_index
+    variable_count: usize,
     string_counter: usize,
     print_signature: Signature,
     print_string_signature: Signature,
@@ -72,21 +74,10 @@ impl CodeGenerator {
             Expr::Variable(name) => {
                 let table = SymbolTable.lock().unwrap();
                 if let Some(symbol) = table.get(name) {
-                    if let Some(val) = symbol.Value.as_ref() {
-                        match val.get(0) {
-                            Some(TypeValue::Integer(n)) => {
-                                builder.ins().iconst(types::I32, *n as i64)
-                            }
-                            Some(TypeValue::Float(f)) => {
-                                builder.ins().f32const(*f)
-                            }
-                            Some(TypeValue::Char(c)) => {
-                                builder.ins().iconst(types::I8, *c as i64)
-                            }
-                            _ => unimplemented!("Unsupported variable type"),
-                        }
+                    if let Some(&var) = self.variables.get(name){
+                        builder.use_var(var)
                     } else {
-                        panic!("Variable '{}' not initialized", name);
+                        panic!("Variable '{}' not found in local variables", name);
                     }
                 } else {
                     panic!("Variable '{}' not found in symbol table", name);
@@ -94,27 +85,18 @@ impl CodeGenerator {
             },
             Expr::Array(name, index) => {
                 let table = SymbolTable.lock().unwrap();
-                if let Some(symbol) = table.get(name) {
-                    // Compile the index expression
-                    let index_value = self.compile_expr(builder, index);
-                    
-                    // For now, we'll just return the first element of the array
-                    // More sophisticated array access will require more complex handling
-                    if let Some(val) = symbol.Value.as_ref() {
-                        match val.first() {
-                            Some(TypeValue::Integer(n)) => {
-                                builder.ins().iconst(types::I32, *n as i64)
-                            }
-                            Some(TypeValue::Float(f)) => {
-                                builder.ins().f32const(*f)
-                            }
-                            _ => unimplemented!("Array element type not supported"),
-                        }
-                    } else {
-                        panic!("Array '{}' not initialized", name);
-                    }
+                let symbol = table.get(name)
+                    .expect(&format!("Array '{}' not found in symbol table", name));
+                
+                // Compile the index expression
+                let index_value = self.compile_expr(builder, index);
+                
+                // For now, just use a simple array access strategy
+                // In a real implementation, you'd do bounds checking and proper pointer arithmetic
+                if let Some(var) = self.variables.get(name) {
+                    builder.use_var(*var)
                 } else {
-                    panic!("Array '{}' not found in symbol table", name);
+                    panic!("Array '{}' not initialized in local variables", name);
                 }
             },
             Expr::BinaryOp(left, op, right) => {
@@ -147,16 +129,47 @@ impl CodeGenerator {
         builder: &mut FunctionBuilder,
         assignment: &Assignment
     ) -> Result<(), String> {
+        // Check if the variable exists in the symbol table
+        let table = SymbolTable.lock().map_err(|_| "Failed to lock symbol table")?;
+        if !table.contains_key(&assignment.var) {
+            return Err(format!("Variable '{}' not declared", assignment.var));
+        }
+        drop(table); // Explicitly drop the lock
+
         // Compile the expression first
         let value = self.compile_expr(builder, &assignment.expr);
         
+        // Special handling for array assignments
+        if let Some(index_expr) = &assignment.index {
+            let index_value = self.compile_expr(builder, index_expr);
+            // In a real implementation, you'd do proper array element assignment
+            // For now, we'll just ensure the array exists
+            let table = SymbolTable.lock().map_err(|_| "Failed to lock symbol table")?;
+            if !table.contains_key(&assignment.var) {
+                return Err(format!("Array '{}' not declared", assignment.var));
+            }
+        }
+
         // Get or create the variable
         let var = match self.variables.get(&assignment.var) {
             Some(&v) => v,
             None => {
-                // Create a new variable if it doesn't exist
+                // Determine the type from the symbol table
+                let table = SymbolTable.lock().unwrap();
+                let symbol_type = table.get(&assignment.var)
+                    .map(|s| s.Type.clone())
+                    .unwrap_or(Some(Types::Integer)); // Default to Integer if not found
+
+                // Create a new variable
                 let new_var = Variable::new(self.get_variable_index());
-                builder.declare_var(new_var, types::I32);
+                let cranelift_type = match symbol_type {
+                    Some(Types::Integer) => types::I32,
+                    Some(Types::Float) => types::F32,
+                    Some(Types::Char) => types::I8,
+                    _ => types::I32, // Default fallback
+                };
+                
+                builder.declare_var(new_var, cranelift_type);
                 self.variables.insert(assignment.var.clone(), new_var);
                 new_var
             }
@@ -169,10 +182,10 @@ impl CodeGenerator {
         let mut table = SymbolTable.lock().map_err(|_| "Symbol table lock poisoned")?;
         if let Some(symbol) = table.get_mut(&assignment.var) {
             // Convert the Cranelift value to TypeValue
-            // For now, we're assuming all values are integers
             let type_value = match builder.func.dfg.value_type(value) {
                 types::I32 => TypeValue::Integer(0), // Placeholder value
                 types::F32 => TypeValue::Float(0.0), // Placeholder value
+                types::I8 => TypeValue::Char('\0'), // Placeholder for char
                 _ => return Err("Unsupported type".to_string()),
             };
             
@@ -560,7 +573,6 @@ impl CodeGenerator {
             }
         }
     }
-    
     
     
 }
