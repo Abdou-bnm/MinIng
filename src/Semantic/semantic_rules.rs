@@ -6,19 +6,19 @@ pub struct SemanticRules;
 
 impl SemanticRules {
     pub fn validate_variable_declaration(
-        name: &str, 
+        name: (String, (usize, usize)), 
         symbol_type: &Types, 
         is_constant: bool, 
         value: Option<&TypeValue>
     ) -> Result<(), String> {
         // Check variable name length
-        if name.len() > 8 {
-            return Err(format!("Identifier '{}' cannot exceed 8 characters", name));
+        if name.0.len() > 8 {
+            return Err(format!("Identifier '{}' cannot exceed 8 characters at ({}:{})", name.0, name.1.0, name.1.1));
         }
 
         // Validate constant initialization
         if is_constant && value.is_none() {
-            return Err(format!("Constant '{}' must be initialized at declaration", name));
+            return Err(format!("Constant '{}' must be initialized at declaration at ({}:{})", name.0, name.1.0, name.1.1));
         }
 
         // Type checking for initialization
@@ -31,24 +31,24 @@ impl SemanticRules {
     }
 
     pub fn validate_array_declaration(
-        name: &str,
+        name: (String, (usize, usize)),
         element_type: &Types, 
         size: i16
     ) -> Result<(), String> {
         // Check array name length
-        if name.len() > 8 {
-            return Err(format!("Identifier '{}' cannot exceed 8 characters", name));
+        if name.0.len() > 8 {
+            return Err(format!("Identifier '{}' cannot exceed 8 characters at ({}:{})", name.0, name.1.0, name.1.1));
         }
 
         // Validate array size
         if size <= 0 {
-            return Err(format!("Array '{}' must have a positive size", name));
+            return Err(format!("Array '{}' must have a positive size at ({}:{})", name.0, name.1.0, name.1.1));
         }
 
         // Validate array type
         match element_type {
             Types::Integer | Types::Float | Types::Char => Ok(()),
-            _ => Err(format!("Invalid array type for '{}'", name))
+            _ => Err(format!("Invalid array type for '{}' at ({}:{})", name.0, name.1.0, name.1.1))
         }
     }
     
