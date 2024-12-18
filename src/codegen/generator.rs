@@ -3,14 +3,16 @@ use cranelift_codegen::ir::{Function, GlobalValue, InstBuilder};
 use cranelift_codegen::Context;
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{default_libcall_names, DataContext, Linkage, Module, ModuleError};
-use core::panic;
-use std::sync::Mutex;
-use crate::Parser::ast::{Assignment, BinOp, Condition, Expr, ForStmt, IfStmt, Instruction, LogOp, Loop, ReadStmt, RelOp, Statement, TypeValue, WriteElement, WriteStmt};
-use crate::Semantic::ts::{insert, update, remove, Symbol, Types}; 
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use crate::Parser::ast::*;
+use cranelift::prelude::Variable as CraneliftVariable;
+use crate::Parser::ast::Variable as AstVariable;
+
+use crate::Semantic::ts::*;
 
 
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
 use lalrpop_util::lalrpop_mod;
 
 lalrpop_mod!(pub grammar, "/Parser/grammar.rs");
@@ -21,16 +23,49 @@ pub struct CodeGenerator {
     pub ctx: Context,
     pub builder_context: FunctionBuilderContext,
     module: JITModule,
-    variables: HashMap<String, Variable>,
+    variables: HashMap<String, CraneliftVariable>,
     variable_count: usize,
     string_counter: usize,
     print_signature: Signature,
     print_string_signature: Signature,
     read_signature: Signature,
+    pub symbol_table: Arc<Mutex<HashMap<String, Symbol>>>,
 }
 
-impl CodeGenerator {
+pub struct FunctionBuilderWrapper {
+    func: Box<Function>,
+    builder_context: Box<FunctionBuilderContext>,
+}
+
+impl FunctionBuilderWrapper {
     pub fn new() -> Self {
+        let func = Box::new(Function::new());
+        let builder_context = Box::new(FunctionBuilderContext::new());
+        
+        Self {
+            func,
+            builder_context,
+        }
+    }
+
+    pub fn create_builder(&mut self) -> FunctionBuilder {
+        let mut builder = FunctionBuilder::new(
+            &mut self.func,
+            &mut self.builder_context,
+        );
+        
+        let entry_block = builder.create_block();
+        builder.append_block_params_for_function_params(entry_block);
+        builder.switch_to_block(entry_block);
+        builder.seal_block(entry_block);
+        
+        builder
+    }
+}
+
+
+impl CodeGenerator {
+    pub fn new(symbol_table: Arc<Mutex<HashMap<String, Symbol>>>) -> Self {
         let builder = JITBuilder::new(default_libcall_names()).unwrap();
         let module = JITModule::new(builder);
         let ctx = Context::new();
@@ -44,7 +79,7 @@ impl CodeGenerator {
         sig_print.params.push(AbiParam::new(types::I32));
         
         let mut sig_print_str = module.make_signature();
-        sig_print_str.params.push(AbiParam::new(types::I64)); // Pointer to string
+        sig_print_str.params.push(AbiParam::new(types::I64));
 
         CodeGenerator {
             ctx,
@@ -56,7 +91,12 @@ impl CodeGenerator {
             print_signature: sig_print,
             print_string_signature: sig_print_str,
             read_signature: sig_read,
+            symbol_table,
         }
+    }
+
+    pub fn add_symbol(&mut self, name: String, symbol: Symbol) {
+        self.symbol_table.lock().unwrap().insert(name, symbol);
     }
 
     pub fn compile_expr(
@@ -161,7 +201,7 @@ impl CodeGenerator {
                     .unwrap_or(Some(Types::Integer)); // Default to Integer if not found
 
                 // Create a new variable
-                let new_var = Variable::new(self.get_variable_index());
+                let new_var = CraneliftVariable::new(self.get_variable_index());
                 let cranelift_type = match symbol_type {
                     Some(Types::Integer) => types::I32,
                     Some(Types::Float) => types::F32,
@@ -475,7 +515,7 @@ impl CodeGenerator {
         let value = builder.inst_results(call)[0];
     
         // Create a variable and store the value
-        let var = Variable::new(self.get_variable_index());
+        let var = CraneliftVariable::new(self.get_variable_index());
     
         builder.declare_var(var, types::I32);
         builder.def_var(var, value);
