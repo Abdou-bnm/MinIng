@@ -58,7 +58,7 @@ Declaration: Declaration = {
                 }
             }
         }
-        Declaration::Variables(t, v)
+        Declaration::Variable(t, v)
     },
 
     <t: Type> <a: ArrayDeclarationList> ";" => {
@@ -114,7 +114,7 @@ Declaration: Declaration = {
             }
         }
 
-        Declaration::Array(t, a)
+        Declaration::ADEC(t, a)
     },
 
     "CONST" <t:Type> <a:AssignList> ";" => {
@@ -237,7 +237,7 @@ Factor: Expr = {
     <i:"Identifier"> => {
         Expr::Variable(i)
     },
-    <i: "Identifier"> "[" <index: Expr> "]" => Expr::Array(i, Box::new(index)),
+    <i: "Identifier"> "[" <index: Expr> "]" => Expr::SUBS(i, Box::new(index)),
     <n: "Integer"> => Expr::Literal(TypeValue::Integer(n)),
     <f: "Float"> => Expr::Literal(TypeValue::Float(f)),
     <c: "Char"> => Expr::Literal(TypeValue::Char(c)),

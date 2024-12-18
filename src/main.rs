@@ -116,31 +116,31 @@ fn main() {
     }
 
 // Printing Program's Structure
-//     println!("Program Structure:");
-// 
-//     // Print Global Variables
-//     if let Some(globals) = &program.global {
-//         println!("\nGlobal Variables:");
-//         for decl in globals {
-//             println!("{:?}", decl);
-//         }
-//     }
-// 
-//     // Print Declarations
-//     if let Some(decls) = &program.decls {
-//         println!("\nDeclarations:");
-//         for decl in decls {
-//             println!("{:?}", decl);
-//         }
-//     }
-// 
-//     // Print Instructions
-//     if let Some(instructions) = &program.inst {
-//         println!("\nInstructions:");
-//         for inst in instructions {
-//             println!("{:?}", inst);
-//         }
-//     }
+    println!("Program Structure:");
+
+    // Print Global Variables
+    if let Some(globals) = &program.global {
+        println!("\nGlobal Variables:");
+        for decl in globals {
+            println!("{:?}", decl);
+        }
+    }
+
+    // Print Declarations
+    if let Some(decls) = &program.decls {
+        println!("\nDeclarations:");
+        for decl in decls {
+            println!("{:?}", decl);
+        }
+    }
+
+    // Print Instructions
+    if let Some(instructions) = &program.inst {
+        println!("\nInstructions:");
+        for inst in instructions {
+            println!("{:?}", inst);
+        }
+    }
 
 // **************************************************** Semantic Analysis ****************************************************
     let mut semanticAnalyzer = SemanticAnalyzer::new();
@@ -156,12 +156,12 @@ fn main() {
     
 // **************************************************** Symbol Table ****************************************************
 // Full print of the symbol table
-    print_table(&SymbolTable);
-    // **************************************************** Quadruplets ****************************************************
+    print_table(&SymbolTable); 
 
-    let mut quadruplet_generator = QuadrupletGenerator::new();
-    quadruplet_generator.generate_from_program(&program);
-
-    println!("\nQuadruplets:");
-    quadruplet_generator.print_quadruplets();
+// **************************************************** Quadruplets ****************************************************
+    // let mut quadruplet_generator = QuadrupletGenerator::new();
+    // quadruplet_generator.generate_from_program(&program);
+    // 
+    // println!("\nQuadruplets:");
+    // quadruplet_generator.print_quadruplets();
 }

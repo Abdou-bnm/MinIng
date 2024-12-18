@@ -153,10 +153,10 @@ impl QuadrupletGenerator {
     fn generate_declaration(&mut self, declaration: &Declaration) {
         match declaration {
             // Handling simple variable declarations
-            Declaration::Variables(type_, variables) => self.generate_declarations_variable(type_, variables),
+            Declaration::Variable(type_, variables) => self.generate_declarations_variable(type_, variables),
 
             // Handling array declarations
-            Declaration::Array(type_, array_decls) => self.generate_declarations_array(type_, array_decls),
+            Declaration::ADEC(type_, array_decls) => self.generate_declarations_array(type_, array_decls),
 
             // Handling constant declarations (though this is typically done in the declarations section)
             Declaration::Constant(type_, assignments) => self.generate_declarations_constant(type_, assignments),
@@ -314,7 +314,7 @@ impl QuadrupletGenerator {
                 result_temp
             },
             Expr::Variable(var) => var.clone(),
-            Expr::Array(name, index) => {
+            Expr::SUBS(name, index) => {
                 let index_temp = self.generate_expression(index);
                 let result_temp = self.generate_temp();
 

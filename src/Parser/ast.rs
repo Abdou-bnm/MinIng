@@ -15,8 +15,9 @@ impl Program {
 // Declaration types: Variables, Arrays, Constants
 #[derive(Debug)]
 pub enum Declaration {
-    Variables(Type, Vec<Variable>),     // Variables with a type and a list of variables
-    Array(Type, Vec<ArrayDecl>),        // Array declarations
+    Variable(Type, Vec<Variable>),     // Variables with a type and a list of variables
+    // USED ADEC INSTEAD OF ARRAY, AS REQUIRED BY THE TEACHER
+    ADEC(Type, Vec<ArrayDecl>),        // Array declarations
     Constant(Type, Vec<Assignment>),    // Constant declarations
 }
 
@@ -61,7 +62,8 @@ pub enum ArrayDecl {
 pub enum Expr {
     BinaryOp(Box<Expr>, BinOp, Box<Expr>),    // Binary operation (e.g., a + b)
     Variable(String),                         // Variable (e.g., x)
-    Array(String, Box<Expr>),
+    // SUBS means array element
+    SUBS(String, Box<Expr>),
     Literal(TypeValue),                         // Numeric or char literal
 }
 

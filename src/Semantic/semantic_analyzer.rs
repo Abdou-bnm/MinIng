@@ -33,7 +33,7 @@ impl SemanticAnalyzer {
     fn analyze_declarations(&mut self, declarations: &Vec<Declaration>) -> Result<(), String> {
         for decl in declarations {
             match decl {
-                Declaration::Variables(type_decl, vars) => {
+                Declaration::Variable(type_decl, vars) => {
                     for var in vars {
                         match type_decl {
                             Type::Integer => self.validate_variable(&Types::Integer, var)?,
@@ -42,7 +42,7 @@ impl SemanticAnalyzer {
                         }
                     }
                 },
-                Declaration::Array(type_decl, arrays) => {
+                Declaration::ADEC(type_decl, arrays) => {
                     for arr in arrays {
                         match type_decl {
                             Type::Integer => self.validate_array(&Types::Integer, arr)?,
@@ -166,7 +166,7 @@ impl SemanticAnalyzer {
                 None => Err(format!("Undeclared Variable: {:?}", s)),
             },
 
-            Expr::Array(s, i) => {
+            Expr::SUBS(s, i) => {
                 let symbol_table = SymbolTable.lock().unwrap();
                 let symbol = symbol_table.get(s).ok_or_else(|| format!("Undeclared variable: {:?}", s))?;
                 let copySymbol = symbol.clone();
@@ -579,7 +579,7 @@ impl SemanticAnalyzer {
                     // Check if variable exists in symbol table
                     SymbolTable.lock().unwrap().get(var).ok_or_else(|| format!("Undefined variable '{}' in WRITE.", var))?;
                 },
-                Expr::Array(var, expr) => {
+                Expr::SUBS(var, expr) => {
                     return match SymbolTable.lock().unwrap().get(var) {
                         Some(symbol) => match self.get_array_cell(symbol, expr) {
                             Ok(t) => Ok(()),
@@ -621,7 +621,7 @@ impl SemanticAnalyzer {
                     None => Err(format!("Undefined variable '{}'.", var)),
                 }
             },
-            Expr::Array(var, expr) => {
+            Expr::SUBS(var, expr) => {
                 match SymbolTable.lock().unwrap().get(var) {
                     Some(symbol) => match symbol.Type.clone() {
                         Some(t) => Ok(t),
