@@ -77,7 +77,7 @@ impl SemanticAnalyzer {
             },
             crate::Parser::ast::Variable::Initialized(name, expr) => {
                 let value = self.parse_expr(expr)?;
-                
+
                 match SymbolTable.lock().unwrap().get_mut(name) {
                     Some(e) => e.Value[0] = Some(value.clone()),
                     None => return Err(format!("Syntactic Error: Undeclared variable '{}'.", name)),
@@ -122,7 +122,7 @@ impl SemanticAnalyzer {
             _ => Err(format!("Invalid Expression:\n\tLeft-Hand Operator: {:?}\n\tBinary Operator: {}\n\tRight-Hand Operator: {:?}", a0, op, a1))
         }
     }
-    
+
     fn get_array_cell(&mut self, symbol: &Symbol, index: &Expr) -> Result<TypeValue, String> {
         match symbol.size {
             None => Err(format!("Index Assignment used with Non-Array variable '{}'.", symbol.Identifier)),
@@ -198,7 +198,7 @@ impl SemanticAnalyzer {
         }
         Ok(())
     }
-    
+
     fn validate_array_string_initialization(&mut self, type_decl: &Types, declared_size: &Expr, elements: &str) -> Result<(), String> {
         let parsed_declared_size;
         match self.parse_expr(declared_size)? {
@@ -208,7 +208,7 @@ impl SemanticAnalyzer {
         if parsed_declared_size < elements.len() as i16 {
             return Err(format!("Array overflow detected\nExpected a maximum of '{}' elements, got assigned {} elements.", parsed_declared_size, elements.len()));
         }
-        Ok(())   
+        Ok(())
     }
 
     fn validate_array(&mut self, type_decl: &Types, arr: &ArrayDecl) -> Result<(), String> {
@@ -242,7 +242,7 @@ impl SemanticAnalyzer {
                     let parsedValue = self.parse_expr(value)?;
                     vector.push(Some(parsedValue));
                 }
-                
+
                 let mut index = 0;
                 while vector.len() < size as usize {
                     vector.push(vector[index].clone());
@@ -275,7 +275,7 @@ impl SemanticAnalyzer {
                     vector.push(vector[index].clone());
                     index += 1;
                 }
-                
+
                 match SymbolTable.lock().unwrap().get_mut(name) {
                     Some(e) => {
                         e.size = Some(size);
@@ -296,7 +296,7 @@ impl SemanticAnalyzer {
     ) -> Result<(), String> {
         let value_type = self.infer_expression_type(&constant.expr)?;
         TypeChecker::check_assignment_compatibility(type_decl, &value_type)?;
-        
+
         let value = self.parse_expr(&constant.expr)?;
         let Identifier = constant.var.clone();
         match SymbolTable.lock().unwrap().get_mut(&Identifier) {
@@ -325,7 +325,7 @@ impl SemanticAnalyzer {
         }
         Ok(())
     }
-    
+
     // Implement other validation methods here:
     // validate_assignment, validate_if_statement, validate_for_loop,
     // validate_read, validate_write...
@@ -344,19 +344,19 @@ impl SemanticAnalyzer {
         let symbol = symbol_table.get(&assignment.var).unwrap().clone();
         let symbolType = symbol.Type.clone().unwrap();
         drop(symbol_table);
-        
+
         match (symbolType.clone(), expr_value.clone()) {
             (Types::Integer, TypeValue::Integer(t)) => {},
             (Types::Char, TypeValue::Char(t2)) => {},
             (Types::Float, TypeValue::Float(t3)) => {},
             _ => return Err(format!("Cannot insert value of type {:?} into an array of type {:?}.", expr_value.clone(), symbolType.clone())),
         }
-        
+
         let mut index: i16 = 0;
         match &assignment.index {
             None => index = 0,
             Some(e) => {
-                let expressionResult = &self.parse_expr(&e)?; 
+                let expressionResult = &self.parse_expr(&e)?;
                 match expressionResult {
                     TypeValue::Integer(i) => {
                         let size = symbol.size
@@ -530,7 +530,7 @@ impl SemanticAnalyzer {
                 vec![None::<Option<TypeValue>>];
             }
         }
-        
+
         // Need to implement the index into the program later, just need to figure out the problem with nabil
         match SymbolTable.lock().unwrap().get_mut(Identifier) {
             None => return Err(format!("Undeclared variable '{}' inside READ instruction.", Identifier)),
@@ -538,7 +538,7 @@ impl SemanticAnalyzer {
                 let symbolType = symbol
                     .Type.clone()
                     .ok_or_else(|| format!("Cannot READ into constant '{}'.", Identifier))?;
-                
+
                 match symbolType {
                     Types::Integer => symbol.Value[index as usize] = Some(TypeValue::Integer(0)),
                     Types::Float => symbol.Value[index as usize] = Some(TypeValue::Float(0.0)),
@@ -549,7 +549,7 @@ impl SemanticAnalyzer {
         };
                 // todo!();
         Ok(())
-        
+
     }
 
     fn validate_write(&mut self, write_stmt: &WriteStmt) -> Result<(), String> {
@@ -612,7 +612,7 @@ impl SemanticAnalyzer {
             }),
             Expr::Variable(var) => {
                 match SymbolTable.lock().unwrap().get(var) {
-                    Some(symbol) => { 
+                    Some(symbol) => {
                         match symbol.Type.clone() {
                             Some(t) => Ok(t),
                             None => Err(format!("No type for variable '{}' in WRITE.", var))
@@ -637,12 +637,12 @@ impl SemanticAnalyzer {
             },
         }
     }
-    
+
     fn evaluate_array_size(&mut self, size_expr: &Expr) -> Result<i16, String> {
         let result = self.parse_expr(size_expr)?;
         match result {
             TypeValue::Integer(i) => {
-                if i <= 0 { 
+                if i <= 0 {
                     return Err("Non-Positive Array size detected.".to_string());
                 }
                 Ok(i)
