@@ -16,7 +16,7 @@ use lalrpop_util::lalrpop_mod;
 use logos::Logos;
 use once_cell::sync::Lazy;
 use crate::Parser::ast::BinOp;
-use crate::Semantic::quadruplets::QuadrupletGenerator;
+// use crate::Semantic::quadruplets::QuadrupletGenerator;
 use crate::Semantic::semantic_analyzer::SemanticAnalyzer;
 use crate::Semantic::ts::*;
 use colored::*;
@@ -46,7 +46,7 @@ DECLARATION {
 
     %% Constants
     CONST INTEGER MaxVal = 32767;
-    CONST INTEGER MinVal = (-32768);
+    CONST INTEGER MinVal = (-32760);
     CONST FLOAT Pi = 3.14159;
     CONST FLOAT NegPi = (-3.14159);
     CONST CHAR Grade = 'A';
@@ -54,7 +54,7 @@ DECLARATION {
 
 INSTRUCTION {
     %% Testing assignments with complex expressions
-    Var1 = -15;
+    Var1 = (-15);
     Var2 = (-25);
     F1 = 3.14;
     F2 = (-2.718);
