@@ -51,9 +51,9 @@ impl Assignment {
 
 #[derive(Debug)]
 pub enum ArrayDecl {
-    Simple(String, Expr),
-    Initialized(String, Expr, Vec<Expr>),
-    InitializedString(String, Expr, String),
+    ADEC(String, Expr),
+    ADEC_init(String, Expr, Vec<Expr>),
+    ADEC_str(String, Expr, String),
 }
 
 // Expressions that can be literals, variables, or binary operations

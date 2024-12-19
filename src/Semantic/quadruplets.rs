@@ -193,7 +193,7 @@ impl QuadrupletGenerator {
     fn generate_declarations_array(&mut self, type_: &Type, array_decls: &Vec<ArrayDecl>) {
         for arr in array_decls {
             match arr {
-                ArrayDecl::Simple(name, size) => {
+                ArrayDecl::ADEC(name, size) => {
                     // For uninitialized arrays, we might just generate a size quadruplet
                     let size_temp = self.generate_expression(size);
 
@@ -204,7 +204,7 @@ impl QuadrupletGenerator {
                         Some(format!("size_{}", name))
                     ));
                 },
-                ArrayDecl::Initialized(name, size, initializers) => {
+                ArrayDecl::ADEC_init(name, size, initializers) => {
                     // Generate size quadruplet
                     let size_temp = self.generate_expression(size);
 
@@ -227,7 +227,7 @@ impl QuadrupletGenerator {
                         ));
                     }
                 },
-                ArrayDecl::InitializedString(name, size, string_val) => {
+                ArrayDecl::ADEC_str(name, size, string_val) => {
                     // Generate size quadruplet
                     let size_temp = self.generate_expression(size);
 

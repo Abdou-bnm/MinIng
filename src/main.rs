@@ -20,7 +20,7 @@ use crate::Parser::ast::BinOp;
 use crate::Semantic::quadruplets::QuadrupletGenerator;
 use crate::Semantic::semantic_analyzer::SemanticAnalyzer;
 use crate::Semantic::ts::*;
-
+use colored::*;
 lalrpop_mod!(pub grammar, "/Parser/grammar.rs");
 pub static SymbolTable: Lazy<Mutex<HashMap<String, Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
@@ -74,11 +74,13 @@ fn main() {
         WRITE(Arr4[1]);
         WRITE(Arr4[2]);
         FOR( B = 2 : 6 : 10) { B = B + 1; }
+        Arr3[2] = 'D';
     }
     "#;
     
 // **************************************************** Lexical Analysis ****************************************************
 // Display of all tokens, enumerated
+//     println!("Found tokens: ");
 //     let mut i = 0;
 //     let mut lexer = Lexer::lexer::Token::lexer(input);
 //     while let Some(token) = lexer.next() {
@@ -87,18 +89,24 @@ fn main() {
 //     }
 
 // Prints errors found in the lexical analysis phase
+    println!("{}", "Printing found tokens: ".blue());
     let mut lexer = Lexer::lexer::Token::lexer(input);
+    let mut i = 0;
     while let Some(token) = lexer.next() {
         match token {
             Err(e) => {
-                eprintln!("Lexical Error: {}", e);
+                eprintln!("{:?} {}", "Lexical Error: {}".red(), e );
                 exit(1);
             },
-            Ok(token) => {}
+            Ok(token) => {
+                println!("{}: {:?}", i, token);
+                        i += 1;
+            }
         }
     }
-    println!("Lexical Analysis Successful.");
-
+    println!("{}"  , "Lexical Analysis Successful.".green());
+    println!("-------------------------------------------------------------------------------------------------");
+    println!();
 // **************************************************** Syntactic Analysis ****************************************************
     let lexer = Lexer::lexer::Token::lexer(input);
     let parser = grammar::ProgramParser::new();
@@ -106,55 +114,62 @@ fn main() {
     let program;
     match result {
         Ok(t) => {
-            println!("Syntactic Analysis Successful.");
+            println!("{}", "Syntactic Analysis Successful.".green());
+            println!("-------------------------------------------------------------------------------------------------");
             program = t;
         },
         Err(e) => {
-            eprintln!("Syntactic Error: {:?}", e);
+            eprintln!("{} {:?}", "Semantic Error: {}".red(), e);
             exit(1);
         },
     }
-
-    println!("Program Structure:");
-
-    // Print Global Variables
-    if let Some(globals) = &program.global {
-        println!("\nGlobal Variables:");
-        for decl in globals {
-            println!("{:?}", decl);
-        }
-    }
-
-    // Print Declarations
-    if let Some(decls) = &program.decls {
-        println!("\nDeclarations:");
-        for decl in decls {
-            println!("{:?}", decl);
-        }
-    }
-
-    // Print Instructions
-    if let Some(instructions) = &program.inst {
-        println!("\nInstructions:");
-        for inst in instructions {
-            println!("{:?}", inst);
-        }
-    }
-
-// **************************************************** Semantic Analysis ****************************************************
+    // // **************************************************** Semantic Analysis ****************************************************
     let mut semanticAnalyzer = SemanticAnalyzer::new();
 
     let semantic_result = semanticAnalyzer.analyze(&program);
     match semantic_result {
-        Ok(semantic) => println!("Semantic Analysis Successful."),
+        Ok(semantic) => {
+            println!("{}","Semantic Analysis Successful.".green());
+            println!("-------------------------------------------------------------------------------------------------");
+            println!();
+            println!("{}", "Printing the contents of the abstract syntax tree: ".yellow());
+            println!("{}", "Program Structure:".blue());
+
+            // Print Global Variables
+            if let Some(globals) = &program.global {
+                println!("{}", "\nGlobal Variables:".blue());
+                for decl in globals {
+                    println!("{:?}", decl);
+                }
+            }
+            //     // Print Declarations
+            if let Some(decls) = &program.decls {
+                println!("{}", "\nDeclarations:".blue());
+                for decl in decls {
+                    println!("{:?}", decl);
+                }
+            }
+
+            //    Print Instructions
+            if let Some(instructions) = &program.inst {
+                println!("{}","\nInstructions:".blue());
+                for inst in instructions {
+                    println!("{:?}", inst);
+                }
+            }
+
+        },
         Err(msg) => {
-            eprintln!("Semantic Error: {}", msg);
+            eprintln!("{} {}", "Semantic Error: ".red(), msg);
             exit(1);
         },
     }
+
     
 // **************************************************** Symbol Table ****************************************************
 // Full print of the symbol table
+    println!("-------------------------------------------------------------------------------------------------");
+    println!("{}", "The contents of the symbols table".green());
     print_table(&SymbolTable);
     // **************************************************** Quadruplets ****************************************************
 

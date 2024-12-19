@@ -71,7 +71,7 @@ Declaration: Declaration = {
         for var in &a {
             // let mut table = SymbolTable.lock().unwrap();
             match var {
-                ArrayDecl::Simple(Identifier, Size) => {
+                ArrayDecl::ADEC(Identifier, Size) => {
                     let Identifier = Identifier.clone();
                     match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, vec![None::<TypeValue>], None)) {
                         Ok(t) => {},
@@ -81,7 +81,7 @@ Declaration: Declaration = {
                         },
                     }
                 },
-                ArrayDecl::Initialized(Identifier, Size, Value) => {
+                ArrayDecl::ADEC_init(Identifier, Size, Value) => {
                     let Identifier = Identifier.clone();
                     match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, vec![None::<TypeValue>], None)) {
                         Ok(t) => {},
@@ -92,7 +92,7 @@ Declaration: Declaration = {
                     }
                 },
 
-                ArrayDecl::InitializedString(Identifier, Size, Value) => {
+                ArrayDecl::ADEC_str(Identifier, Size, Value) => {
                     let Identifier = Identifier.clone();
                     let symbolTableValue;
                     if Value.chars().count() == 0 {
@@ -167,13 +167,13 @@ ArrayDeclarationList: Vec<ArrayDecl> = {
 
 ArrayDecl: ArrayDecl = {
     <i:"Identifier"> "[" <s: Expr> "]" => {
-        ArrayDecl::Simple(i, s)
+        ArrayDecl::ADEC(i, s)
     },
     <i:"Identifier"> "[" <s: Expr> "]" "=" "[" <v: ExpressionList> "]" => {
-        ArrayDecl::Initialized(i, s, v)
+        ArrayDecl::ADEC_init(i, s, v)
     },
     <i:"Identifier"> "[" <s: Expr> "]" "=" <v: StringLit> => {
-        ArrayDecl::InitializedString(i, s, v)
+        ArrayDecl::ADEC_str(i, s, v)
     },
 };
 

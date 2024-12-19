@@ -214,7 +214,7 @@ impl SemanticAnalyzer {
     fn validate_array(&mut self, type_decl: &Types, arr: &ArrayDecl) -> Result<(), String> {
         // println!("{:?}", arr);
         match arr {
-            ArrayDecl::Simple(name, size_expr) => {
+            ArrayDecl::ADEC(name, size_expr) => {
                 let size = self.evaluate_array_size(size_expr)?;
                 match SymbolTable.lock().unwrap().get_mut(name) {
                     Some(symbol) => {
@@ -227,7 +227,7 @@ impl SemanticAnalyzer {
                 };
                 SemanticRules::validate_array_declaration(name, type_decl, size)
             },
-            ArrayDecl::Initialized(name, size_expr, values) => {
+            ArrayDecl::ADEC_init(name, size_expr, values) => {
                 let size = self.evaluate_array_size(size_expr)?;
                 // Additional type checking for initialized arrays
                 self.validate_array_initialization(type_decl, size_expr, values)?;
@@ -256,7 +256,7 @@ impl SemanticAnalyzer {
 
                 SemanticRules::validate_array_declaration(name, type_decl, size)
             },
-            ArrayDecl::InitializedString(name, size_expr, value) => {
+            ArrayDecl::ADEC_str(name, size_expr, value) => {
                 let size = self.evaluate_array_size(size_expr)?;
                 let value = &value[1..value.len() - 1];
                 self.validate_array_string_initialization(type_decl, size_expr, value)?;
