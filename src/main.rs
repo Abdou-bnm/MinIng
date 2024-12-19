@@ -11,6 +11,8 @@ mod Test;
 use std::collections::HashMap;
 use std::process::exit;
 use std::sync::Mutex;
+use std::fs;
+use std::env;
 // Import LALRPOP utilities
 use lalrpop_util;
 use lalrpop_util::lalrpop_mod;
@@ -21,11 +23,12 @@ use crate::Semantic::quadruplets::QuadrupletGenerator;
 use crate::Semantic::semantic_analyzer::SemanticAnalyzer;
 use crate::Semantic::ts::*;
 use colored::*;
+
 lalrpop_mod!(pub grammar, "/Parser/grammar.rs");
 pub static SymbolTable: Lazy<Mutex<HashMap<String, Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
-fn main() {
-    let input = r#"
+// Example program to use as fallback
+const DEFAULT_PROGRAM: &str = r#"
     VAR_GLOBAL {
         INTEGER V;
         INTEGER X = 1;
@@ -73,41 +76,41 @@ fn main() {
         Arr1[3] = Arr4[1];
         WRITE(Arr4[1]);
         WRITE(Arr4[2]);
-        FOR( B = 2 : 6 : 10) { B = B + 1; }
+        // FOR( B = 2 : 6 : 10) {
+        //     IF(B < 5) { B += 1; } ELSE {B = 0;}
+        // }
         Arr3[2] = 'D';
     }
     "#;
-    
-// **************************************************** Lexical Analysis ****************************************************
-// Display of all tokens, enumerated
-//     println!("Found tokens: ");
-//     let mut i = 0;
-//     let mut lexer = Lexer::lexer::Token::lexer(input);
-//     while let Some(token) = lexer.next() {
-//         println!("{}: {:?}", i, token);
-//         i += 1;
-//     }
 
-// Prints errors found in the lexical analysis phase
+fn process_program(input: &str, is_default: bool) {
+    if is_default {
+        println!("{}", "No input file provided or file reading failed. Running default example:".yellow());
+        println!("{}", input);
+        println!("-------------------------------------------------------------------------------------------------");
+    }
+
+    // **************************************************** Lexical Analysis ****************************************************
     println!("{}", "Printing found tokens: ".blue());
     let mut lexer = Lexer::lexer::Token::lexer(input);
     let mut i = 0;
     while let Some(token) = lexer.next() {
         match token {
             Err(e) => {
-                eprintln!("{:?} {}", "Lexical Error: {}".red(), e );
+                eprintln!("{} {}", "Lexical Error:".red(), e);
                 exit(1);
             },
             Ok(token) => {
                 println!("{}: {:?}", i, token);
-                        i += 1;
+                i += 1;
             }
         }
     }
-    println!("{}"  , "Lexical Analysis Successful.".green());
+    println!("{}", "Lexical Analysis Successful.".green());
     println!("-------------------------------------------------------------------------------------------------");
     println!();
-// **************************************************** Syntactic Analysis ****************************************************
+
+    // **************************************************** Syntactic Analysis ****************************************************
     let lexer = Lexer::lexer::Token::lexer(input);
     let parser = grammar::ProgramParser::new();
     let result = parser.parse(input, lexer.enumerate().map(|(i, t)| t.map(|token| (i, token, i+1)).map_err(|e| e)));
@@ -123,13 +126,13 @@ fn main() {
             exit(1);
         },
     }
-    // // **************************************************** Semantic Analysis ****************************************************
+    // **************************************************** Semantic Analysis ****************************************************
     let mut semanticAnalyzer = SemanticAnalyzer::new();
-
     let semantic_result = semanticAnalyzer.analyze(&program);
+
     match semantic_result {
-        Ok(semantic) => {
-            println!("{}","Semantic Analysis Successful.".green());
+        Ok(_) => {
+            println!("{}", "Semantic Analysis Successful.".green());
             println!("-------------------------------------------------------------------------------------------------");
             println!();
             println!("{}", "Printing the contents of the abstract syntax tree: ".yellow());
@@ -142,7 +145,8 @@ fn main() {
                     println!("{:?}", decl);
                 }
             }
-            //     // Print Declarations
+
+            // Print Declarations
             if let Some(decls) = &program.decls {
                 println!("{}", "\nDeclarations:".blue());
                 for decl in decls {
@@ -150,32 +154,42 @@ fn main() {
                 }
             }
 
-            //    Print Instructions
+            // Print Instructions
             if let Some(instructions) = &program.inst {
-                println!("{}","\nInstructions:".blue());
+                println!("{}", "\nInstructions:".blue());
                 for inst in instructions {
                     println!("{:?}", inst);
                 }
             }
-
         },
         Err(msg) => {
-            eprintln!("{} {}", "Semantic Error: ".red(), msg);
+            eprintln!("{} {}", "Semantic Error:".red(), msg);
             exit(1);
         },
     }
 
-    
-// **************************************************** Symbol Table ****************************************************
-// Full print of the symbol table
+    // **************************************************** Symbol Table ****************************************************
     println!("-------------------------------------------------------------------------------------------------");
     println!("{}", "The contents of the symbols table".green());
     print_table(&SymbolTable);
-    // **************************************************** Quadruplets ****************************************************
+}
 
-    // let mut quadruplet_generator = QuadrupletGenerator::new();
-    // quadruplet_generator.generate_from_program(&program);
-    //
-    // println!("\nQuadruplets:");
-    // quadruplet_generator.print_quadruplets();
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    let program = if args.len() > 1 {
+        match fs::read_to_string(&args[1]) {
+            Ok(content) => {
+                println!("{} {}", "Reading from file:".blue(), args[1]);
+                (content, false)
+            },
+            Err(e) => {
+                eprintln!("{} {}: {}", "Error reading file".red(), args[1], e);
+                (DEFAULT_PROGRAM.to_string(), true)
+            }
+        }
+    } else {
+        (DEFAULT_PROGRAM.to_string(), true)
+    };
+
+    process_program(&program.0, program.1);
 }
