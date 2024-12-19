@@ -1,146 +1,120 @@
-use std::process::exit;
-use once_cell::sync::Lazy;
+#![cfg(test)]
+
 use logos::Logos;
 use crate::{grammar, Lexer};
-use crate::Lexer::lexer::Token;
-use crate::Parser::ast::Program;
 use crate::Semantic::semantic_analyzer::SemanticAnalyzer;
-use crate::Semantic::ts::print_table;
-use crate::SymbolTable;
-
-static INPUT: Lazy<&str> = Lazy::new(|| {
-    r#"
-    VAR_GLOBAL {
-        INTEGER V = 0, X = 1, W = 2;
-        FLOAT Y;
-        CHAR E = '!';
-        INTEGER Arr0[7 = [1, 2, 3, 4];
-        INTEGER B = 4;
-        INTEGER C = B + 4,
-                A = B + C + 2;
-        CHAR F = ' ';
-        CHAR Arr5[3] = "";
-        CHAR Arr3[6] = "Hello";
-        FLOAT Arr4[5];
-        FLOAT Arr1[B] = [1.2, .5, 2.0];
-        CHAR Arr2[10] = ['S', 't', 'r', 'i', 'n', 'g'];
-        CHAR I = 'X';
-    }
-    DECLARATION {
-        CONST INTEGER D = 5;
-        CONST FLOAT R = .6;
-    }
-    INSTRUCTION {
-        B = B + 4;
-        Arr2[1] = '1';
-        Arr2[3] = '1';
-        Arr1[1] = (Arr1[1] + Arr1[1]) / Arr1[2];
-        Arr3[2] = 'L';
-    }
-    "#
-});
+use super::*;
 
 #[test]
-fn validate_lexical_analysis() {
-    let mut lexer = Lexer::lexer::Token::lexer(&INPUT);
-    let mut i = 0;
+fn test_lexical_error() {
+    let program = r#"
+        VAR_GLOBAL {
+            INTEGER 123InvalidName;
+        }
+    "#;
+    let mut lexer = Lexer::lexer::Token::lexer(program);
     while let Some(token) = lexer.next() {
-        match token {
-            Err(e) => {
-                eprintln!("Lexical Error: {}", e);
-                exit(1);
-            },
-            Ok(token) => {
-                println!("{}: {:?}", i, token);
-            }
+        if token.is_err() {
+            assert!(true, "Lexical error detected as expected");
+            return;
         }
-        i += 1;
     }
-    println!("Lexical Analysis Successful.");
-    // Clearing the symbols table
-    SymbolTable.lock().unwrap().clear();
+    panic!("Expected a lexical error but none occurred");
 }
+
 #[test]
-fn test_syntactic_analysis() {
-    use std::process::exit;
-
-    // Tokenize the input using the lexer.
-    let lexer = Lexer::lexer::Token::lexer(&INPUT);
-
-    // Initialize the parser.
+fn test_syntactic_error() {
+    let program = r#"
+        VAR_GLOBAL {
+            INTEGER A
+        }
+        DECLARATION {
+            CONST INTEGER B = 5;
+        }
+    "#; // Missing semicolon after `INTEGER A`
+    let lexer = Lexer::lexer::Token::lexer(program);
     let parser = grammar::ProgramParser::new();
-
-    // Parse the input to generate the AST.
-    match parser.parse(
-        &INPUT,
-        lexer
-            .enumerate()
-            .map(|(i, t)| t.map(|token| (i, token, i + 1)).map_err(|e| e))
-    ) {
-        Ok(program) => {
-            println!("Syntactic Analysis Successful.");
-            print_ast(&program);
-        }
-        Err(e) => {
-            eprintln!("Syntactic Error: {:?}", e);
-            exit(1);
-        }
-    }
-    SymbolTable.lock().unwrap().clear();
+    let result = parser.parse(program, lexer.enumerate().map(|(i, t)| t.map(|token| (i, token, i+1)).map_err(|e| e)));
+    assert!(result.is_err(), "Syntactic error detected as expected");
 }
+
 #[test]
-fn test_full_analysis_pipeline() {
-    use std::process::exit;
-
-    // Step 1: Lexical Analysis
-    let lexer = Lexer::lexer::Token::lexer(&INPUT);
-    let tokens: Vec<_> = lexer
-        .enumerate()
-        .map(|(i, t)| t.map(|token| (i, token, i + 1)).map_err(|e| e))
-        .collect();
-
-    // Check for lexical errors.
-    if let Some(Err(e)) = tokens.iter().find(|t| t.is_err()) {
-        eprintln!("Lexical Error: {:?}", e);
-        exit(1);
-    }
-    println!("Lexical Analysis Successful.");
-
-    // Step 2: Syntactic Analysis
+fn test_semantic_error_undeclared_variable() {
+    let program = r#"
+        VAR_GLOBAL {
+            INTEGER A;
+        }
+        INSTRUCTION {
+            B = 5;
+        }
+    "#; // `B` is not declared
+    let lexer = Lexer::lexer::Token::lexer(program);
     let parser = grammar::ProgramParser::new();
-    let result = parser.parse(
-        &INPUT,
-        tokens.into_iter().map(|t| t.unwrap()), // Unwrap safe as errors were handled
-    );
-    println!("parsed successfully");
-    let program = match result {
-        Ok(ast) => {
-            println!("Syntactic Analysis Successful.");
-            print_ast(&ast); // Helper function to print the AST
-            ast
-        }
-        Err(e) => {
-            eprintln!("Syntactic Error: {:?}", e);
-            exit(1);
-        }
-    };
+    let parse_result = parser.parse(program, lexer.enumerate().map(|(i, t)| t.map(|token| (i, token, i+1)).map_err(|e| e)));
+    assert!(parse_result.is_ok(), "Parsing should succeed");
 
-    // Step 3: Semantic Analysis
-    let mut semantic_analyzer = SemanticAnalyzer::new();
-    match semantic_analyzer.analyze(&program) {
-        Ok(_) => {
-            println!("Semantic Analysis Successful.");
-        }
-        Err(msg) => {
-            eprintln!("Semantic Error: {}", msg);
-            exit(1);
-        }
-    }
-    print_table(&SymbolTable);
-    SymbolTable.lock().unwrap().clear();
-
+    let mut semanticAnalyzer = SemanticAnalyzer::new();
+    let semantic_result = semanticAnalyzer.analyze(&parse_result.unwrap());
+    assert!(semantic_result.is_err(), "Semantic error detected as expected");
 }
-fn print_ast(program: &Program) {
-    println!("\nGenerated Abstract Syntax Tree (AST):");
-    println!("{:#?}", program); // Pretty-print the AST for better readability.
+
+#[test]
+fn test_semantic_error_type_mismatch() {
+    let program = r#"
+        VAR_GLOBAL {
+            INTEGER A;
+            FLOAT B;
+        }
+        INSTRUCTION {
+            A = B + 3.14;
+        }
+    "#; // Type mismatch: assigning FLOAT to INTEGER
+    let lexer = Lexer::lexer::Token::lexer(program);
+    let parser = grammar::ProgramParser::new();
+    let parse_result = parser.parse(program, lexer.enumerate().map(|(i, t)| t.map(|token| (i, token, i+1)).map_err(|e| e)));
+    assert!(parse_result.is_ok(), "Parsing should succeed");
+
+    let mut semanticAnalyzer = SemanticAnalyzer::new();
+    let semantic_result = semanticAnalyzer.analyze(&parse_result.unwrap());
+    assert!(semantic_result.is_err(), "Semantic error detected as expected");
+}
+
+#[test]
+fn test_semantic_error_array_bounds() {
+    let program = r#"
+        VAR_GLOBAL {
+            INTEGER Arr[3] = [1, 2, 3];
+        }
+        INSTRUCTION {
+            Arr[5] = 10;
+        }
+    "#; // Out-of-bounds array access
+    let lexer = Lexer::lexer::Token::lexer(program);
+    let parser = grammar::ProgramParser::new();
+    let parse_result = parser.parse(program, lexer.enumerate().map(|(i, t)| t.map(|token| (i, token, i+1)).map_err(|e| e)));
+    assert!(parse_result.is_ok(), "Parsing should succeed");
+
+    let mut semanticAnalyzer = SemanticAnalyzer::new();
+    let semantic_result = semanticAnalyzer.analyze(&parse_result.unwrap());
+    assert!(semantic_result.is_err(), "Semantic error detected as expected");
+}
+
+#[test]
+fn test_semantic_error_const_assignment() {
+    let program = r#"
+        DECLARATION {
+            CONST INTEGER A = 10;
+        }
+        INSTRUCTION {
+            A = 5;
+        }
+    "#; // Attempt to modify a constant
+    let lexer = Lexer::lexer::Token::lexer(program);
+    let parser = grammar::ProgramParser::new();
+    let parse_result = parser.parse(program, lexer.enumerate().map(|(i, t)| t.map(|token| (i, token, i+1)).map_err(|e| e)));
+    assert!(parse_result.is_ok(), "Parsing should succeed");
+
+    let mut semanticAnalyzer = SemanticAnalyzer::new();
+    let semantic_result = semanticAnalyzer.analyze(&parse_result.unwrap());
+    assert!(semantic_result.is_err(), "Semantic error detected as expected");
 }

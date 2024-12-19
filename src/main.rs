@@ -13,7 +13,6 @@ use std::process::exit;
 use std::sync::Mutex;
 use std::fs;
 use std::env;
-// Import LALRPOP utilities
 use lalrpop_util;
 use lalrpop_util::lalrpop_mod;
 use logos::Logos;
@@ -27,60 +26,120 @@ use colored::*;
 lalrpop_mod!(pub grammar, "/Parser/grammar.rs");
 pub static SymbolTable: Lazy<Mutex<HashMap<String, Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
-// Example program to use as fallback
 const DEFAULT_PROGRAM: &str = r#"
     VAR_GLOBAL {
-        INTEGER V;
-        INTEGER X = 1;
-        FLOAT Z = 2.0;
-        CHAR Y[1] = "";
-        CHAR E = '!';
-        INTEGER Arr0[7] = [1, 2, 3, 4];
-        INTEGER B = 4;
-        INTEGER C = B + 4,
-                A = B + C + 2;
-        CHAR F = ' ';
-        CHAR Arr5[3] = "";
-        CHAR Arr3[6] = "Hello";
-        FLOAT Arr4[5];
-        FLOAT Arr1[B] = [1.2, .5124, 2.0];
-        CHAR Arr2[10] = ['S', 't', 'r', 'i', 'n', 'g'];
-        CHAR I = 'X';
-    }
-    DECLARATION {
-        CONST INTEGER D = 5;
-        CONST FLOAT R = .6;
-    }
-    INSTRUCTION {
-        READ(V);
-        X = V + 4;
-        Z = ( - ( 6.5 * 4.5 + 5.6) );
-        X = ( - ( 5 * 9 + 6 ));
-        Arr1[2] = ( - 5.6 );
-        X = (+1);
-        X = (-B);
-        WRITE(B);
-        READ(Arr4[1]);
-        B = B + 4;
-        Arr2[1] = '1';
-        Arr2[3] = '1';
-        Arr1[1] = (Arr1[1] + Arr1[1]) / Arr1[2];
-        Arr3[2] = 'L';
-        %% This is a comment
+    %% Testing global variables
+    INTEGER Global1;
+    FLOAT Global2;
+    CHAR Global3;
+}
 
-        %% READ(B);
-        WRITE("Enter a posivite number");
-        WRITE("B read value : ", B , "." );
-        IF( B >= 0) { B = B + 1; } ELSE {B = 0;}
-        %% Z = Arr4[0];
-        Arr1[3] = Arr4[1];
-        WRITE(Arr4[1]);
-        WRITE(Arr4[2]);
-        FOR( B = 2 : 6 : 10) {
-            IF(B < 5) { B = B+1; } ELSE {B = 0;}
+DECLARATION {
+    %% Testing all types of declarations
+    %% Simple variables
+    INTEGER Var1, Var2, Var3;
+    FLOAT F1, F2;
+    CHAR C1, C2;
+
+    %% Arrays
+    INTEGER Array1[10];
+    FLOAT Array2[5];
+    CHAR String1[8];
+
+    %% Constants
+    CONST INTEGER MaxVal = 32767;
+    CONST INTEGER MinVal = (-32768);
+    CONST FLOAT Pi = 3.14159;
+    CONST FLOAT NegPi = (-3.14159);
+    CONST CHAR Grade = 'A';
+}
+
+INSTRUCTION {
+    %% Testing assignments with complex expressions
+    Var1 = 15;
+    Var2 = (-25);
+    F1 = 3.14;
+    F2 = (-2.718);
+    C1 = 'X';
+
+    %% Testing arithmetic operations with mixed types
+    Var3 = (Var1 + Var2) * 3 / 2;
+    F2 = (F1 * 2.0) + (-1.5);
+
+    %% Testing array operations
+    Array1[0] = 100;
+    Array2[4] = 99.9;
+    String1[0] = 'H';
+
+    %% Testing input/output
+    WRITE("Please enter a number: ");
+    READ(Var1);
+    WRITE("You entered ", Var1, " which is ", Var1 , " for positive");
+
+    %% Testing nested if conditions with logical operators
+    IF (Var1 > 0 && Var1 < 100) {
+        WRITE("Number is between 0 and 100");
+        IF (Var1 >= 50) {
+            WRITE("Number is >= 50");
+        } ELSE {
+            WRITE("Number is < 50");
         }
-        Arr3[2] = 'D';
+    } ELSE {
+        IF (Var1 <= 0 || Var1 >= 100) {
+            WRITE("Number is outside range");
+        }
     }
+
+    %% Testing comparison operators
+    IF (Var1 == Var2) {
+        WRITE("Equal");
+    }
+    IF (Var1 != Var2) {
+        WRITE("Not equal");
+    }
+    IF (Var1 <= Var2) {
+        WRITE("Less or equal");
+    }
+    IF (Var1 >= Var2) {
+        WRITE("Greater or equal");
+    }
+
+    %% Testing logical operators
+    IF (!((Var1 > 0) && (Var2 < 0))) {
+        WRITE("Complex logical condition");
+    }
+
+    %% Testing FOR loop with nested conditions
+    FOR(Var1 = 1 : 1 : 10) {
+        IF ((Var1 / 2) == 0) {
+            WRITE("Even number: ", Var1);
+        } ELSE {
+            WRITE("Odd number: ", Var1);
+        }
+
+        %% Testing nested loops
+        FOR(Var2 = 0 : 2 : 6) {
+            Array1[Var2] = Var1 * Var2;
+        }
+    }
+
+    %% Testing complex arithmetic expressions
+    F1 = 5.5 / (F2 - (-2.5));
+    Var3 = MaxVal / 2 + MaxVal * (-1);
+
+    %% Testing string operations
+    String1[0] = 'T';
+    String1[1] = 'E';
+    String1[2] = 'S';
+    String1[3] = 'T';
+
+    %% Testing boundary conditions
+    Array1[9] = MaxVal;
+    Array2[0] = (-99.99);
+
+    %% Testing multiple operations in one expression
+    Var1 = (MaxVal + MinVal) / 2 * (1 + 2 * 3) / 4;
+}
     "#;
 
 fn process_program(input: &str, is_default: bool) {
@@ -90,14 +149,13 @@ fn process_program(input: &str, is_default: bool) {
         println!("-------------------------------------------------------------------------------------------------");
     }
 
-    // **************************************************** Lexical Analysis ****************************************************
     println!("{}", "Printing found tokens: ".blue());
     let mut lexer = Lexer::lexer::Token::lexer(input);
     let mut i = 0;
     while let Some(token) = lexer.next() {
         match token {
             Err(e) => {
-                eprintln!("{} {}", "Lexical Error:".red(), e);
+                eprintln!("{} {} token number {}", "Lexical Error:".red(), e,i);
                 exit(1);
             },
             Ok(token) => {
@@ -110,11 +168,10 @@ fn process_program(input: &str, is_default: bool) {
     println!("-------------------------------------------------------------------------------------------------");
     println!();
 
-    // **************************************************** Syntactic Analysis ****************************************************
     let lexer = Lexer::lexer::Token::lexer(input);
     let parser = grammar::ProgramParser::new();
     let result = parser.parse(input, lexer.enumerate().map(|(i, t)| t.map(|token| (i, token, i+1)).map_err(|e| e)));
-    let program  = match result {
+    let program = match result {
         Ok(t) => {
             println!("{}", "Syntactic Analysis Successful.".green());
             println!("-------------------------------------------------------------------------------------------------");
@@ -125,10 +182,9 @@ fn process_program(input: &str, is_default: bool) {
             exit(1);
         },
     };
-    // **************************************************** Semantic Analysis ****************************************************
+
     let mut semanticAnalyzer = SemanticAnalyzer::new();
     let semantic_result = semanticAnalyzer.analyze(&program);
-
     match semantic_result {
         Ok(_) => {
             println!("{}", "Semantic Analysis Successful.".green());
@@ -136,7 +192,6 @@ fn process_program(input: &str, is_default: bool) {
             println!();
             println!("{}", "Printing the contents of the abstract syntax tree: ".yellow());
 
-            // Print Global Variables
             if let Some(globals) = &program.global {
                 println!("{}", "\nGlobal Variables:".blue());
                 for decl in globals {
@@ -144,7 +199,6 @@ fn process_program(input: &str, is_default: bool) {
                 }
             }
 
-            // Print Declarations
             if let Some(decls) = &program.decls {
                 println!("{}", "\nDeclarations:".blue());
                 for decl in decls {
@@ -152,7 +206,6 @@ fn process_program(input: &str, is_default: bool) {
                 }
             }
 
-            // Print Instructions
             if let Some(instructions) = &program.inst {
                 println!("{}", "\nInstructions:".blue());
                 for inst in instructions {
@@ -161,12 +214,11 @@ fn process_program(input: &str, is_default: bool) {
             }
         },
         Err(msg) => {
-            eprintln!("{} {}", "Semantic Error:".red(), msg);
+            eprintln!("{} {} at token {:?}", "Semantic Error:".red(), msg, program);
             exit(1);
         },
     }
 
-    // **************************************************** Symbol Table ****************************************************
     println!("-------------------------------------------------------------------------------------------------");
     println!("{}", "The contents of the symbols table".green());
     print_table(&SymbolTable);

@@ -13,20 +13,20 @@ use crate::Semantic::ts::Symbol;
 pub static lineNumber: Lazy<Mutex<u16>> = Lazy::new(|| Mutex::new(0u16));
 pub static SymbolTable: Lazy<Mutex<HashMap<String, Symbol>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
-
-// Validation functions Copy,
 fn validate_identifier(lex: &logos::Lexer<Token>) -> Result<String, CustomError> {
     let Identifier = lex.slice().to_string();
     if Identifier.len() > 8 {
         Err(CustomError::IdentifierTooLong(Identifier))
     }
-    else { 
+    else {
         Ok(Identifier)
     }
 }
 
 pub fn validate_integer(lex: &logos::Lexer<Token>) -> Result<i16, CustomError> {
     let slice = lex.slice();
+
+    // Parse as an i16 integer, supporting both positive and negative values
     match slice.parse::<i16>() {
         Ok(num) => Ok(num),
         Err(_) => Err(CustomError::IntegerOverflow(slice.to_string())),
@@ -46,7 +46,6 @@ fn newline_callback(lex: &logos::Lexer<Token>) {
     *lineNumber.lock().unwrap() = lineNumberClone + 1;
 }
 
-// Main token enum
 #[derive(Logos, Debug, PartialEq, Clone)]
 pub enum Keyword{
     VarGlobal,
@@ -57,6 +56,7 @@ pub enum Keyword{
     ELSE,
     FOR,
 }
+
 pub enum Type{
     INTEGER,
     FLOAT,
@@ -67,10 +67,6 @@ pub enum Type{
 #[logos(error = CustomError)]
 #[logos(skip r"([ \n\t\f]+|%%[^\n]*)")]
 pub enum Token {
-    // #[regex(r"\n", newline_callback)]
-    // NewLine,
-
-    // Keywords
     #[token("VAR_GLOBAL", priority = 5)]
     VarGlobal,
     #[token("DECLARATION", priority = 5)]
@@ -89,7 +85,7 @@ pub enum Token {
     Else,
     #[token("FOR", priority = 5)]
     For,
-    // Types
+
     #[token("INTEGER", priority = 5)]
     IntegerType,
     #[token("FLOAT", priority = 5)]
@@ -97,7 +93,6 @@ pub enum Token {
     #[token("CHAR", priority = 5)]
     CharType,
 
-    // Operators
     #[token("+")]
     Plus,
     #[token("-")]
@@ -113,7 +108,6 @@ pub enum Token {
     #[token("!")]
     Not,
 
-    // comparison operators
     #[token(">")]
     GreaterThan,
     #[token("<")]
@@ -127,10 +121,8 @@ pub enum Token {
     #[token("!=")]
     NotEqual,
 
-    // Assignment
     #[token("=")]
     Assign,
-    // delimiters
     #[token(";")]
     Semicolon,
     #[token("{")]
@@ -150,20 +142,20 @@ pub enum Token {
     #[token("]")]
     CloseBracket,
 
-    // Constants and Identifiers
-    #[regex(r"[A-Z][a-zA-Z0-9]*", validate_identifier)]
-    Identifier(String),
-
-    #[regex(r"[0-9]+", validate_integer)]
+    // Constants and Identifiers with strict ordering
+    #[regex(r"-?[0-9]+", validate_integer, priority = 2)]
     Integer(i16),
 
-    #[regex(r"[0-9]*\.[0-9]+", validate_float)]
+    #[regex(r"-?[0-9]*\.[0-9]+", validate_float, priority = 2)]
     Float(f32),
 
-    #[regex(r"'[^']'", |lex| lex.slice().chars().nth(1))]
+    #[regex(r"[A-Z][a-zA-Z0-9]*", validate_identifier, priority = 1)]
+    Identifier(String),
+
+    #[regex(r"'[^']'", |lex| lex.slice().chars().nth(1), priority = 2)]
     Char(char),
 
-    #[regex(r#""(?:[^"\\]|\\.)*""#, |lex| lex.slice().to_string())]
+    // String literal should have lowest priority
+    #[regex(r#""(?:[^"\\]|\\.)*""#, |lex| lex.slice().to_string(), priority = 0)]
     StringLiteral(String),
-
 }
