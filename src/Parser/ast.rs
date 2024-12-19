@@ -15,8 +15,9 @@ impl Program {
 // Declaration types: Variables, Arrays, Constants
 #[derive(Debug)]
 pub enum Declaration {
-    Variables(Type, Vec<Variable>),     // Variables with a type and a list of variables
-    Array(Type, Vec<ArrayDecl>),        // Array declarations
+    Variable(Type, Vec<Variable>),     // Variables with a type and a list of variables
+    // USED ADEC INSTEAD OF ARRAY, AS REQUIRED BY THE TEACHER
+    ADEC(Type, Vec<ArrayDecl>),     // Array declarations
     Constant(Type, Vec<Assignment>),    // Constant declarations
 }
 

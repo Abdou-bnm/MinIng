@@ -45,7 +45,7 @@ impl Symbol {
 }
 
 // Insert a new symbol, allowing only one symbol per identifier
-pub fn insert(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, symbol: Symbol) -> Result<(), String> {
+pub fn insert(symbolTable: &Lazy<Mutex<HashMap<String, Symbol>>>, symbol: Symbol) -> Result<(), String> {
     if symbolTable.lock().unwrap().contains_key(&symbol.Identifier) {
         return Err(format!("Duplicate identifier '{}'", symbol.Identifier));
     }
@@ -53,7 +53,7 @@ pub fn insert(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, symbol: Sy
     Ok(())
 }
 
-pub fn update(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str, value: &Vec<Option<TypeValue>>) -> Result<(), String> {
+pub fn update(symbolTable: &Lazy<Mutex<HashMap<String, Symbol>>>, identifier: &str, value: &Vec<Option<TypeValue>>) -> Result<(), String> {
     if let Some(symbol) = symbolTable.lock().unwrap().get_mut(identifier) {
         symbol.Value = value.clone();
         Ok(())
@@ -63,7 +63,7 @@ pub fn update(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier
 }
 
 // Remove a symbol by its identifier
-pub fn remove(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>, identifier: &str) -> Option<Symbol> {
+pub fn remove(symbolTable: &Lazy<Mutex<HashMap<String, Symbol>>>, identifier: &str) -> Option<Symbol> {
     symbolTable.lock().unwrap().remove(identifier)
 }
 
@@ -98,21 +98,21 @@ impl std::fmt::Display for Symbol {
                 let element = match value.clone() {
                     None => "N/A, ".to_string(),
                     Some(t) => match t {
-                        TypeValue::Integer(i) => format!("{}, ", i),
+                        TypeValue::Integer(i) => format!("{}, ", i.0),
                         TypeValue::Float(f) => {
-                            if f.fract() == 0.0 {
-                                format!("{:.1}, ", f)
+                            if f.0.fract() == 0.0 {
+                                format!("{:.1}, ", f.0)
                             }
-                            else { 
-                                format!("{}, ", f)
+                            else {
+                                format!("{}, ", f.0)
                             }
                         },
                         TypeValue::Char(c) => {
-                            if c.clone() == '\0' {
+                            if c.0.clone() == '\0' {
                                 "'\\0', ".to_string()
                             }
-                            else { 
-                                format!("'{}', ", c)
+                            else {
+                                format!("'{}', ", c.0)
                             }
                         },
                         TypeValue::Array(_) => "".to_string(),
@@ -129,36 +129,7 @@ impl std::fmt::Display for Symbol {
             value_arr.push(string[..(string.len() - 2)].to_string());
         }
         
-        // match &self.Value {
-        //     None => value_arr.push("N/A".to_string()),
-        //     Some(vec) => {
-        //         let mut string = "".to_string();
-        //         for value in vec {
-        //             let element: String;
-        //             match value {
-        //                 TypeValue::Integer(i) => element = format!("{}, ", i),
-        //                 TypeValue::Float(f) => element = format!("{}, ", f),
-        //                 TypeValue::Char(c) => { 
-        //                     if c.clone() as u16 == 0 {
-        //                         element = "'\\0', ".to_string()
-        //                     }
-        //                     else { 
-        //                         element = format!("'{}', ", c)
-        //                     }
-        //                 },
-        //                 _ => element = "".to_string(),
-        //             }
-        //             if string.len() + element.len() > 17 {
-        //                 value_arr.push(string);
-        //                 string = element.clone();
-        //             }
-        //             else {
-        //                 string += element.as_str();
-        //             }
-        //         }
-        //         value_arr.push(string[..(string.len() - 2)].to_string());
-        //     }
-        // }
+
 
         // Write the row with formatted data
         writeln!(f, "| {:<17} | {:<17} | {:<17} | {:<17} | {:<17} | {:<17} |",
@@ -173,7 +144,7 @@ impl std::fmt::Display for Symbol {
 }
 
 // Update print_table function to improve readability
-pub fn print_table(symbolTable: &Lazy<Mutex<HashMap<String, ts::Symbol>>>) {
+pub fn print_table(symbolTable: &Lazy<Mutex<HashMap<String, Symbol>>>) {
     println!("\nSymbol Table Contents:");
     let border = "+-------------------+-------------------+-------------------+-------------------+-------------------+-------------------+";
     let headers = "| Identifier        | Type              | Size              | Constant          | Address           | Value             |";

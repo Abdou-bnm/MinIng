@@ -41,14 +41,14 @@ Declaration: Declaration = {
             match var {
                 Variable::Simple(name) => {
                     let Identifier = name.clone();
-                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, vec![None::<TypeValue>], None)) {
+                    match insert(&SymbolTable, Symbol::new(Identifier.0, Some(rust_type.clone()), Some(false), None, vec![None::<TypeValue>], None)) {
                         Ok(t) => {},
                         Err(s) => eprintln!("Syntactic Error: {}", s),
                     }
                 },
                 Variable::Initialized(name, expr) => {
                     let Identifier = name.clone();
-                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, vec![None::<TypeValue>], None)) {
+                    match insert(&SymbolTable, Symbol::new(Identifier.0, Some(rust_type.clone()), Some(false), None, vec![None::<TypeValue>], None)) {
                         Ok(t) => {},
                         Err(s) => {
                             eprintln!("Syntactic Error: {}", s);
@@ -58,7 +58,7 @@ Declaration: Declaration = {
                 }
             }
         }
-        Declaration::Variables(t, v)
+        Declaration::Variable(t, v)
     },
 
     <t: Type> <a: ArrayDeclarationList> ";" => {
@@ -71,9 +71,9 @@ Declaration: Declaration = {
         for var in &a {
             // let mut table = SymbolTable.lock().unwrap();
             match var {
-                ArrayDecl::ADEC(Identifier, Size) => {
+                ArrayDecl::Simple(Identifier, Size) => {
                     let Identifier = Identifier.clone();
-                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, vec![None::<TypeValue>], None)) {
+                    match insert(&SymbolTable, Symbol::new(Identifier.0, Some(rust_type.clone()), Some(false), None, vec![None::<TypeValue>], None)) {
                         Ok(t) => {},
                         Err(s) => {
                             eprintln!("Syntactic Error: {}", s);
@@ -81,9 +81,9 @@ Declaration: Declaration = {
                         },
                     }
                 },
-                ArrayDecl::ADEC_init(Identifier, Size, Value) => {
+                ArrayDecl::Initialized(Identifier, Size, Value) => {
                     let Identifier = Identifier.clone();
-                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, vec![None::<TypeValue>], None)) {
+                    match insert(&SymbolTable, Symbol::new(Identifier.0, Some(rust_type.clone()), Some(false), None, vec![None::<TypeValue>], None)) {
                         Ok(t) => {},
                         Err(s) => {
                             eprintln!("Syntactic Error: {}", s);
@@ -92,18 +92,18 @@ Declaration: Declaration = {
                     }
                 },
 
-                ArrayDecl::ADEC_str(Identifier, Size, Value) => {
+                ArrayDecl::InitializedString(Identifier, Size, Value) => {
                     let Identifier = Identifier.clone();
                     let symbolTableValue;
-                    if Value.chars().count() == 0 {
-                        symbolTableValue = TypeValue::Char('\0');
+                    if Value.0.chars().count() == 0 {
+                        symbolTableValue = TypeValue::Char(('\0', (Value.1.0, Value.1.1)));
                     }
                     else {
                     // Set initial value to first character (here it's second because first is double quote)
-                        symbolTableValue = TypeValue::Char(Value.chars().nth(1).unwrap());
+                        symbolTableValue = TypeValue::Char((Value.0.chars().nth(1).unwrap(), (Value.1.0, Value.1.1)));
                     }
                     let vector = vec!(Some(symbolTableValue));
-                    match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(false), None, vector, None)) {
+                    match insert(&SymbolTable, Symbol::new(Identifier.0, Some(rust_type.clone()), Some(false), None, vector, None)) {
                         Ok(t) => {},
                         Err(s) => {
                             eprintln!("Syntactic Error: {}", s);
@@ -114,7 +114,7 @@ Declaration: Declaration = {
             }
         }
 
-        Declaration::Array(t, a)
+        Declaration::ADEC(t, a)
     },
 
     "CONST" <t:Type> <a:AssignList> ";" => {
@@ -126,7 +126,7 @@ Declaration: Declaration = {
         
         for assign in &a {
             let Identifier = assign.var.clone(); 
-            match insert(&SymbolTable, Symbol::new(Identifier, Some(rust_type.clone()), Some(true), None, vec![None::<TypeValue>], None)) {
+           match insert(&SymbolTable, Symbol::new(Identifier.0, Some(rust_type.clone()), Some(true), None, vec![None::<TypeValue>], None)) {
                 Ok(t) => {},
                 Err(s) => {
                     eprintln!("Syntactic Error: {}", s);
@@ -153,8 +153,8 @@ VarList: Vec<Variable> = {
 };
 
 SimpleVar: Variable = {
-    <i:"Identifier"> => Variable::Simple(i.parse().unwrap()),
-    <v:"Identifier"> "=" <e:Expr> => Variable::Initialized(v.parse().unwrap(), e),
+    <i: Identifier> => Variable::Simple(i),
+    <v:Identifier> "=" <e:Expr> => Variable::Initialized(v, e),
 };
 
 ArrayDeclarationList: Vec<ArrayDecl> = {
@@ -166,14 +166,14 @@ ArrayDeclarationList: Vec<ArrayDecl> = {
 };
 
 ArrayDecl: ArrayDecl = {
-    <i:"Identifier"> "[" <s: Expr> "]" => {
-        ArrayDecl::ADEC(i, s)
+    <i: Identifier> "[" <s: Expr> "]" => {
+        ArrayDecl::Simple(i, s)
     },
-    <i:"Identifier"> "[" <s: Expr> "]" "=" "[" <v: ExpressionList> "]" => {
-        ArrayDecl::ADEC_init(i, s, v)
+    <i: Identifier> "[" <s: Expr> "]" "=" "[" <v: ExpressionList> "]" => {
+        ArrayDecl::Initialized(i, s, v)
     },
-    <i:"Identifier"> "[" <s: Expr> "]" "=" <v: StringLit> => {
-        ArrayDecl::ADEC_str(i, s, v)
+    <i: Identifier> "[" <s: Expr> "]" "=" <v: StringLiteral> => {
+        ArrayDecl::InitializedString(i, s, v)
     },
 };
 
@@ -194,10 +194,10 @@ AssignList: Vec<Assignment> = {
 };
 
 Assignment: Assignment = {
-    <v:"Identifier"> "=" <e:Expr> => {
+    <v: Identifier> "=" <e:Expr> => {
         Assignment::new(v, None, e)
     },
-    <v:"Identifier"> "[" <index: Expr> "]" "=" <e:Expr> => {
+    <v: Identifier> "[" <index: Expr> "]" "=" <e:Expr> => {
         Assignment::new(v, Some(index), e)
     },
 };
@@ -212,35 +212,35 @@ Instruction: Instruction = {
 
 Expr: Expr = {
     Term => <>,
-    <l:Expr> "+" <r:Term> => Expr::BinaryOp(Box::new(l), BinOp::Add, Box::new(r)),
-    <l:Expr> "-" <r:Term> => Expr::BinaryOp(Box::new(l), BinOp::Sub, Box::new(r)),
+     <l:Expr> <p: Add> <r:Term> => Expr::BinaryOp(Box::new(l), p, Box::new(r)),
+     <l:Expr> <p: Sub> <r:Term> => Expr::BinaryOp(Box::new(l), p, Box::new(r)),
 };
 
 Term: Expr = {
     Factor => <>,
-    <l:Term> "*" <r:Factor> => Expr::BinaryOp(Box::new(l), BinOp::Mul, Box::new(r)),
-    <l:Term> "/" <r:Factor> => Expr::BinaryOp(Box::new(l), BinOp::Div, Box::new(r)),
+    <l:Term> <p: Mul> <r:Factor> => Expr::BinaryOp(Box::new(l), p, Box::new(r)),
+    <l:Term> <p: Div> <r:Factor> => Expr::BinaryOp(Box::new(l), p, Box::new(r)),
 };
 
 Factor: Expr = {
     "(" <Expr> ")" => <>,
 
-    "(" "+" "(" <Expr> ")" ")" => <>,
-    "(" "-" "(" <e : Expr> ")" ")" =>Expr::BinaryOp(Box::from(e.clone()),BinOp::Sub, Box::from(Expr::BinaryOp(Box::from(e.clone()), BinOp::Add, Box::from(e.clone())))),
-    "(" "+" <i: "Identifier"> ")" => Expr::Variable(i),
-    "(" "+" <n: "Integer"> ")" => Expr::Literal(TypeValue::Integer(n)),
-    "(" "+" <f: "Float"> ")" => Expr::Literal(TypeValue::Float(f)),
-    "(" "-" <i: "Identifier"> ")" => Expr::BinaryOp(Box::new(Expr::Literal(TypeValue::Integer(0))),BinOp::Sub, Box::new(Expr::Variable(i))),
-    "(" "-" <n: "Integer"> ")" => Expr::Literal(TypeValue::Integer(0-n)),
-    "(" "-" <f: "Float"> ")" => Expr::Literal(TypeValue::Float(0.0-f)),
+    "(" "+" "(" <e: Expr> ")" ")" => e,
+        "(" <p: Sub> "(" <e : Expr> ")" ")" =>Expr::BinaryOp(Box::from(e.clone()),p.clone(), Box::from(Expr::BinaryOp(Box::from(e.clone()), BinOp::Add(0, 0), Box::from(e.clone())))),
+        "(" "+" <i: Identifier> ")" => Expr::Variable(i),
+        "(" "+" <n: Integer> ")" => Expr::Literal(TypeValue::Integer(n)),
+        "(" "+" <f: Float> ")" => Expr::Literal(TypeValue::Float(f)),
+        "(" <p: Sub> <i: Identifier> ")" => Expr::BinaryOp(Box::new(Expr::Literal(TypeValue::Integer((0, (0,0))))), p, Box::new(Expr::Variable(i))),
+        "(" <p: Sub> <n: Integer> ")" => Expr::Literal(TypeValue::Integer((0-n.0, n.1))),
+        "(" <p: Sub> <f: Float> ")" => Expr::Literal(TypeValue::Float((0.0-f.0, f.1))),
 
-    <i:"Identifier"> => {
+    <i: Identifier> => {
         Expr::Variable(i)
     },
-    <i: "Identifier"> "[" <index: Expr> "]" => Expr::Array(i, Box::new(index)),
-    <n: "Integer"> => Expr::Literal(TypeValue::Integer(n)),
-    <f: "Float"> => Expr::Literal(TypeValue::Float(f)),
-    <c: "Char"> => Expr::Literal(TypeValue::Char(c)),
+    <i:Identifier> "[" <index: Expr> "]" => Expr::SUBS(i, Box::new(index)),
+    <n: Integer> => Expr::Literal(TypeValue::Integer(n)),
+    <f: Float> => Expr::Literal(TypeValue::Float(f)),
+    <c: Char> => Expr::Literal(TypeValue::Char(c)),
 };
 IfStatement: IfStmt = {
     "IF" "(" <c:Condition> ")" "{" <t:InstructionBlock> "}" <e:ElseBlock?> =>
@@ -257,14 +257,14 @@ Condition: Condition = {
 
 OrCondition: Condition = {
     AndCondition => <>,
-    <l:OrCondition> "||" <r:AndCondition> => 
-        Condition::Logic(Box::new(l), LogOp::Or, Box::new(r)),
+    <l:OrCondition> <p: Or> <r:AndCondition> =>
+    Condition::Logic(Box::new(l), p, Box::new(r)),
 };
 
 AndCondition: Condition = {
     NotCondition => <>,
-    <l:AndCondition> "&&" <r:NotCondition> =>
-        Condition::Logic(Box::new(l), LogOp::And, Box::new(r)),
+    <l:AndCondition> <p: And> <r:NotCondition> =>
+    Condition::Logic(Box::new(l), p, Box::new(r)),
 };
 
 NotCondition: Condition = {
@@ -282,12 +282,12 @@ BasicCondition: BasicCond = {
 };
 
 RelOp: RelOp = {
-    ">" => RelOp::Gt,
-    "<" => RelOp::Lt,
-    ">=" => RelOp::Ge,
-    "<=" => RelOp::Le,
-    "==" => RelOp::Eq,
-    "!=" => RelOp::Ne,
+    <a: ">"> => RelOp::Gt(a.0, a.1),
+    <a: "<"> => RelOp::Lt(a.0, a.1),
+    <a: ">="> => RelOp::Ge(a.0, a.1),
+    <a: "<="> => RelOp::Le(a.0, a.1),
+    <a: "=="> => RelOp::Eq(a.0, a.1),
+    <a: "!="> => RelOp::Ne(a.0, a.1),
 };
 
 ForLoop: ForStmt = {
@@ -313,17 +313,44 @@ WriteElementList: Vec<WriteElement> = {
 };
 
 WriteElement: WriteElement = {
-    StringLit => WriteElement::String(<>),
-    <i: Identifier> => WriteElement::Variable(i.parse().unwrap(), None),
-    <i: Identifier> "[" <e: Expr> "]" => WriteElement::Variable(i.parse().unwrap(), Some(e)),
+     StringLiteral => WriteElement::String(<>),
+     <i: Identifier> => WriteElement::Variable(i, None),
+     <i: Identifier> "[" <e: Expr> "]" => WriteElement::Variable(i, Some(e)),
 };
 
-Identifier: String = {
-    <s:"Identifier"> => String::from(s),
+Add: BinOp = {
+    <p: "+"> => BinOp::Add(p.0, p.1)
+}
+Sub: BinOp = {
+    <p: "-"> => BinOp::Sub(p.0, p.1)
+}
+Mul: BinOp = {
+    <p: "*"> => BinOp::Mul(p.0, p.1)
+}
+Div: BinOp = {
+    <p: "/"> => BinOp::Div(p.0, p.1)
+}
+And: LogOp = {
+    <a: "&&"> => LogOp::And(a.0, a.1)
+}
+Or: LogOp = {
+    <a: "||"> => LogOp::And(a.0, a.1)
+}
+Char: (char, (usize, usize)) = {
+    <c: "Char"> => (c.0, (c.1.0, c.1.1))
+}
+Float: (f32, (usize, usize)) = {
+    <f: "Float"> => (f.0, (f.1.0, f.1.0))
+}
+Integer: (i16, (usize, usize)) = {
+    <i: "Integer"> => (i.0, (i.1.0, i.1.0))
+}
+Identifier: (String, (usize, usize)) = {
+    <s: "Identifier"> => (String::from(s.0), (s.1.0, s.1.0)),
 };
 
-StringLit: String = {
-    <s:"StringLiteral"> => String::from(s),
+StringLiteral: (String, (usize, usize)) = {
+  <s: "StringLiteral"> => (String::from(s.0), (s.1.0, s.1.0)),
 };
 
 extern {
@@ -331,45 +358,45 @@ extern {
     type Error = CustomError;
 
     enum Token {
-        "VAR_GLOBAL" => Token::VarGlobal,
-        "DECLARATION" => Token::Declaration,
-        "INSTRUCTION" => Token::Instruction,
-        "CONST" => Token::Const,
-        "READ" => Token::Read,
-        "WRITE" => Token::Write,
-        "IF" => Token::If,
-        "ELSE" => Token::Else,
-        "FOR" => Token::For,
-        "INTEGER" => Token::IntegerType,
-        "FLOAT" => Token::FloatType,
-        "CHAR" => Token::CharType,
-        "+" => Token::Plus,
-        "-" => Token::Minus,
-        "*" => Token::Multiply,
-        "/" => Token::Divide,
-        "&&" => Token::And,
-        "||" => Token::Or,
-        "!" => Token::Not,
-        ">" => Token::GreaterThan,
-        "<" => Token::LessThan,
-        ">=" => Token::GreaterEqual,
-        "<=" => Token::LessEqual,
-        "==" => Token::Equal,
-        "!=" => Token::NotEqual,
-        "=" => Token::Assign,
-        ";" => Token::Semicolon,
-        "{" => Token::OpenBrace,
-        "}" => Token::CloseBrace,
-        "(" => Token::OpenParen,
-        ")" => Token::CloseParen,
-        "," => Token::Comma,
-        ":" => Token::Colon,
-        "[" => Token::OpenBracket,
-        "]" => Token::CloseBracket,
-        "Identifier" => Token::Identifier(<String>),
-        "Integer" => Token::Integer(<i16>),
-        "Float" => Token::Float(<f32>),
-        "Char" => Token::Char(<char>),
-        "StringLiteral" => Token::StringLiteral(<String>),
+        "VAR_GLOBAL" => Token::VarGlobal(<(usize, usize)>),
+                "DECLARATION" => Token::Declaration(<(usize, usize)>),
+                "INSTRUCTION" => Token::Instruction(<(usize, usize)>),
+                "CONST" => Token::Const(<(usize, usize)>),
+                "READ" => Token::Read(<(usize, usize)>),
+                "WRITE" => Token::Write(<(usize, usize)>),
+                "IF" => Token::If(<(usize, usize)>),
+                "ELSE" => Token::Else(<(usize, usize)>),
+                "FOR" => Token::For(<(usize, usize)>),
+                "INTEGER" => Token::IntegerType(<(usize, usize)>),
+                "FLOAT" => Token::FloatType(<(usize, usize)>),
+                "CHAR" => Token::CharType(<(usize, usize)>),
+                "+" => Token::Plus(<(usize, usize)>),
+                "-" => Token::Minus(<(usize, usize)>),
+                "*" => Token::Multiply(<(usize, usize)>),
+                "/" => Token::Divide(<(usize, usize)>),
+                "&&" => Token::And(<(usize, usize)>),
+                "||" => Token::Or(<(usize, usize)>),
+                "!" => Token::Not(<(usize, usize)>),
+                ">" => Token::GreaterThan(<(usize, usize)>),
+                "<" => Token::LessThan(<(usize, usize)>),
+                ">=" => Token::GreaterEqual(<(usize, usize)>),
+                "<=" => Token::LessEqual(<(usize, usize)>),
+                "==" => Token::Equal(<(usize, usize)>),
+                "!=" => Token::NotEqual(<(usize, usize)>),
+                "=" => Token::Assign(<(usize, usize)>),
+                ";" => Token::Semicolon(<(usize, usize)>),
+                "{" => Token::OpenBrace(<(usize, usize)>),
+                "}" => Token::CloseBrace(<(usize, usize)>),
+                "(" => Token::OpenParen(<(usize, usize)>),
+                ")" => Token::CloseParen(<(usize, usize)>),
+                "," => Token::Comma(<(usize, usize)>),
+                ":" => Token::Colon(<(usize, usize)>),
+                "[" => Token::OpenBracket(<(usize, usize)>),
+                "]" => Token::CloseBracket(<(usize, usize)>),
+                "Identifier" => Token::Identifier((<String>, <(usize, usize)>)),
+                "Integer" => Token::Integer((<i16>, <(usize, usize)>)),
+                "Float" => Token::Float((<f32>, <(usize, usize)>)),
+                "Char" => Token::Char((<char>, <(usize, usize)>)),
+                "StringLiteral" => Token::StringLiteral((<String>, <(usize, usize)>)),
     }
 }

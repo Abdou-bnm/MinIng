@@ -7,12 +7,10 @@ mod Lexer;
 mod Parser;
 mod Semantic;
 mod Test;
-
+use std::{env, fs};
 use std::collections::HashMap;
 use std::process::exit;
 use std::sync::Mutex;
-use std::fs;
-use std::env;
 use lalrpop_util;
 use lalrpop_util::lalrpop_mod;
 use logos::Logos;
