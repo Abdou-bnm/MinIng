@@ -76,9 +76,9 @@ const DEFAULT_PROGRAM: &str = r#"
         Arr1[3] = Arr4[1];
         WRITE(Arr4[1]);
         WRITE(Arr4[2]);
-        // FOR( B = 2 : 6 : 10) {
-        //     IF(B < 5) { B += 1; } ELSE {B = 0;}
-        // }
+        FOR( B = 2 : 6 : 10) {
+            IF(B < 5) { B = B+1; } ELSE {B = 0;}
+        }
         Arr3[2] = 'D';
     }
     "#;
@@ -114,18 +114,17 @@ fn process_program(input: &str, is_default: bool) {
     let lexer = Lexer::lexer::Token::lexer(input);
     let parser = grammar::ProgramParser::new();
     let result = parser.parse(input, lexer.enumerate().map(|(i, t)| t.map(|token| (i, token, i+1)).map_err(|e| e)));
-    let program;
-    match result {
+    let program  = match result {
         Ok(t) => {
             println!("{}", "Syntactic Analysis Successful.".green());
             println!("-------------------------------------------------------------------------------------------------");
-            program = t;
+            t
         },
         Err(e) => {
-            eprintln!("{} {:?}", "Semantic Error: {}".red(), e);
+            eprintln!("{} {:?}", "Syntactic Error: {}".red(), e);
             exit(1);
         },
-    }
+    };
     // **************************************************** Semantic Analysis ****************************************************
     let mut semanticAnalyzer = SemanticAnalyzer::new();
     let semantic_result = semanticAnalyzer.analyze(&program);
@@ -136,7 +135,6 @@ fn process_program(input: &str, is_default: bool) {
             println!("-------------------------------------------------------------------------------------------------");
             println!();
             println!("{}", "Printing the contents of the abstract syntax tree: ".yellow());
-            println!("{}", "Program Structure:".blue());
 
             // Print Global Variables
             if let Some(globals) = &program.global {
