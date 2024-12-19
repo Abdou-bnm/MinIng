@@ -56,7 +56,7 @@ DECLARATION {
 
 INSTRUCTION {
     %% Testing assignments with complex expressions
-    Var1 = 15;
+    Var1 = -15;
     Var2 = (-25);
     F1 = 3.14;
     F2 = (-2.718);
