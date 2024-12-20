@@ -1,0 +1,402 @@
+use crate::Parser::ast::*;
+use crate::Lexer::lexer::Token;
+use crate::Semantic::ts::*;
+use crate::Lexer::error::CustomError;
+use crate::SymbolTable;
+use std::process::exit;
+
+//grammar(text: &str);
+grammar(text: &str);
+
+pub Program: Program = {
+    "VAR_GLOBAL" "{" <g:VarGlobalBlock?> "}"
+    "DECLARATION" "{" <d:DeclarationBlock?> "}"
+    "INSTRUCTION" "{" <i:InstructionBlock?> "}" => {
+        Program::new(g, d, i)
+    }
+};
+
+VarGlobalBlock: Vec<Declaration> = {
+    Declaration+ => <>,
+};
+
+DeclarationBlock: Vec<Declaration> = {
+    Declaration+ => <>,
+};
+
+InstructionBlock: Vec<Instruction> = {
+    Instruction+ => <>,
+};
+
+Declaration: Declaration = {
+    <t:Type> <v:VarList> ";" => {
+        let rust_type = match t {
+            Type::Integer => Types::Integer,
+            Type::Float => Types::Float,
+            Type::Char => Types::Char,
+        };
+        
+        for var in &v {
+            // let mut table = SymbolTable.lock().unwrap();
+            match var {
+                Variable::Simple(name) => {
+                    let Identifier = name.clone();
+                    match insert(&SymbolTable, Symbol::new(Identifier.0, Some(rust_type.clone()), Some(false), None, vec![None::<TypeValue>], None)) {
+                        Ok(t) => {},
+                        Err(s) => eprintln!("Syntactic Error: {}", s),
+                    }
+                },
+                Variable::Initialized(name, expr) => {
+                    let Identifier = name.clone();
+                    match insert(&SymbolTable, Symbol::new(Identifier.0, Some(rust_type.clone()), Some(false), None, vec![None::<TypeValue>], None)) {
+                        Ok(t) => {},
+                        Err(s) => {
+                            eprintln!("Syntactic Error: {}", s);
+                            exit(1);
+                        },
+                    }
+                }
+            }
+        }
+        Declaration::Variable(t, v)
+    },
+
+    <t: Type> <a: ArrayDeclarationList> ";" => {
+        let rust_type = match t {
+            Type::Integer => Types::Integer,
+            Type::Float => Types::Float,
+            Type::Char => Types::Char,
+        };
+
+        for var in &a {
+            // let mut table = SymbolTable.lock().unwrap();
+            match var {
+                ArrayDecl::Simple(Identifier, Size) => {
+                    let Identifier = Identifier.clone();
+                    match insert(&SymbolTable, Symbol::new(Identifier.0, Some(rust_type.clone()), Some(false), None, vec![None::<TypeValue>], None)) {
+                        Ok(t) => {},
+                        Err(s) => {
+                            eprintln!("Syntactic Error: {}", s);
+                            exit(1);
+                        },
+                    }
+                },
+                ArrayDecl::Initialized(Identifier, Size, Value) => {
+                    let Identifier = Identifier.clone();
+                    match insert(&SymbolTable, Symbol::new(Identifier.0, Some(rust_type.clone()), Some(false), None, vec![None::<TypeValue>], None)) {
+                        Ok(t) => {},
+                        Err(s) => {
+                            eprintln!("Syntactic Error: {}", s);
+                            exit(1);
+                        },
+                    }
+                },
+
+                ArrayDecl::InitializedString(Identifier, Size, Value) => {
+                    let Identifier = Identifier.clone();
+                    let symbolTableValue;
+                    if Value.0.chars().count() == 0 {
+                        symbolTableValue = TypeValue::Char(('\0', (Value.1.0, Value.1.1)));
+                    }
+                    else {
+                    // Set initial value to first character (here it's second because first is double quote)
+                        symbolTableValue = TypeValue::Char((Value.0.chars().nth(1).unwrap(), (Value.1.0, Value.1.1)));
+                    }
+                    let vector = vec!(Some(symbolTableValue));
+                    match insert(&SymbolTable, Symbol::new(Identifier.0, Some(rust_type.clone()), Some(false), None, vector, None)) {
+                        Ok(t) => {},
+                        Err(s) => {
+                            eprintln!("Syntactic Error: {}", s);
+                            exit(1);
+                        },
+                    }
+                }
+            }
+        }
+
+        Declaration::ADEC(t, a)
+    },
+
+    "CONST" <t:Type> <a:AssignList> ";" => {
+        let rust_type = match t {
+            Type::Integer => Types::Integer,
+            Type::Float => Types::Float,
+            Type::Char => Types::Char,
+        };
+        
+        for assign in &a {
+            let Identifier = assign.var.clone(); 
+           match insert(&SymbolTable, Symbol::new(Identifier.0, Some(rust_type.clone()), Some(true), None, vec![None::<TypeValue>], None)) {
+                Ok(t) => {},
+                Err(s) => {
+                    eprintln!("Syntactic Error: {}", s);
+                    exit(1);
+                },
+            }
+        }
+        Declaration::Constant(t, a)
+    },
+};
+
+Type: Type = {
+    "INTEGER" => Type::Integer,
+    "FLOAT" => Type::Float,
+    "CHAR" => Type::Char,
+};
+
+VarList: Vec<Variable> = {
+    SimpleVar => vec![<>],
+    <v:SimpleVar> "," <mut vs:VarList> => {
+        vs.insert(0, v);
+        vs
+    },
+};
+
+SimpleVar: Variable = {
+    <i: Identifier> => Variable::Simple(i),
+    <v:Identifier> "=" <e:Expr> => Variable::Initialized(v, e),
+};
+
+ArrayDeclarationList: Vec<ArrayDecl> = {
+    ArrayDecl => vec![<>],
+    <a: ArrayDecl> "," <mut as_: ArrayDeclarationList> => {
+        as_.insert(0, a);
+        as_
+    }
+};
+
+ArrayDecl: ArrayDecl = {
+    <i: Identifier> "[" <s: Expr> "]" => {
+        ArrayDecl::Simple(i, s)
+    },
+    <i: Identifier> "[" <s: Expr> "]" "=" "[" <v: ExpressionList> "]" => {
+        ArrayDecl::Initialized(i, s, v)
+    },
+    <i: Identifier> "[" <s: Expr> "]" "=" <v: StringLiteral> => {
+        ArrayDecl::InitializedString(i, s, v)
+    },
+};
+
+ExpressionList: Vec<Expr> = {
+    Expr => vec![<>],
+    <a: Expr> "," <mut as_: ExpressionList> => {
+        as_.insert(0, a);
+        as_
+    }
+};
+
+AssignList: Vec<Assignment> = {
+    Assignment => vec![<>],
+    <a:Assignment> "," <mut as_:AssignList> => {
+        as_.insert(0, a);
+        as_
+    }
+};
+
+Assignment: Assignment = {
+    <v: Identifier> "=" <e:Expr> => {
+        Assignment::new(v, None, e)
+    },
+    <v: Identifier> "[" <index: Expr> "]" "=" <e:Expr> => {
+        Assignment::new(v, Some(index), e)
+    },
+};
+
+Instruction: Instruction = {
+    <a:Assignment> ";" => Instruction::Assign(a),
+    <i:IfStatement> => Instruction::If(i),
+    <f:ForLoop> => Instruction::For(f),
+    <r:ReadStatement> => Instruction::Read(r),
+    <w:WriteStatement> => Instruction::Write(w),
+};
+
+Expr: Expr = {
+    Term => <>,
+     <l:Expr> <p: Add> <r:Term> => Expr::BinaryOp(Box::new(l), p, Box::new(r)),
+     <l:Expr> <p: Sub> <r:Term> => Expr::BinaryOp(Box::new(l), p, Box::new(r)),
+};
+
+Term: Expr = {
+    Factor => <>,
+    <l:Term> <p: Mul> <r:Factor> => Expr::BinaryOp(Box::new(l), p, Box::new(r)),
+    <l:Term> <p: Div> <r:Factor> => Expr::BinaryOp(Box::new(l), p, Box::new(r)),
+};
+
+Factor: Expr = {
+    "(" <Expr> ")" => <>,
+
+    "(" "+" "(" <e: Expr> ")" ")" => e,
+        "(" <p: Sub> "(" <e : Expr> ")" ")" =>Expr::BinaryOp(Box::from(e.clone()),p.clone(), Box::from(Expr::BinaryOp(Box::from(e.clone()), BinOp::Add(0, 0), Box::from(e.clone())))),
+        "(" "+" <i: Identifier> ")" => Expr::Variable(i),
+        "(" "+" <n: Integer> ")" => Expr::Literal(TypeValue::Integer(n)),
+        "(" "+" <f: Float> ")" => Expr::Literal(TypeValue::Float(f)),
+        "(" <p: Sub> <i: Identifier> ")" => Expr::BinaryOp(Box::new(Expr::Literal(TypeValue::Integer((0, (0,0))))), p, Box::new(Expr::Variable(i))),
+        "(" <p: Sub> <n: Integer> ")" => Expr::Literal(TypeValue::Integer((0-n.0, n.1))),
+        "(" <p: Sub> <f: Float> ")" => Expr::Literal(TypeValue::Float((0.0-f.0, f.1))),
+
+    <i: Identifier> => {
+        Expr::Variable(i)
+    },
+    <i:Identifier> "[" <index: Expr> "]" => Expr::SUBS(i, Box::new(index)),
+    <n: Integer> => Expr::Literal(TypeValue::Integer(n)),
+    <f: Float> => Expr::Literal(TypeValue::Float(f)),
+    <c: Char> => Expr::Literal(TypeValue::Char(c)),
+};
+IfStatement: IfStmt = {
+    "IF" "(" <c:Condition> ")" "{" <t:InstructionBlock> "}" <e:ElseBlock?> =>
+        IfStmt::new(c, t, e),
+};
+
+ElseBlock: Vec<Instruction> = {
+    "ELSE" "{" <i:InstructionBlock> "}" => i,
+};
+
+Condition: Condition = {
+    OrCondition => <>,
+};
+
+OrCondition: Condition = {
+    AndCondition => <>,
+    <l:OrCondition> <p: Or> <r:AndCondition> =>
+    Condition::Logic(Box::new(l), p, Box::new(r)),
+};
+
+AndCondition: Condition = {
+    NotCondition => <>,
+    <l:AndCondition> <p: And> <r:NotCondition> =>
+    Condition::Logic(Box::new(l), p, Box::new(r)),
+};
+
+NotCondition: Condition = {
+    BaseCondition => <>,
+    "!" <c:NotCondition> => Condition::Not(Box::new(c)),
+};
+
+BaseCondition: Condition = {
+    "(" <Condition> ")" => <>,
+    BasicCondition => Condition::Basic(<>),
+};
+
+BasicCondition: BasicCond = {
+    <l:Expr> <op:RelOp> <r:Expr> => BasicCond::new(l, op, r),
+};
+
+RelOp: RelOp = {
+    <a: ">"> => RelOp::Gt(a.0, a.1),
+    <a: "<"> => RelOp::Lt(a.0, a.1),
+    <a: ">="> => RelOp::Ge(a.0, a.1),
+    <a: "<="> => RelOp::Le(a.0, a.1),
+    <a: "=="> => RelOp::Eq(a.0, a.1),
+    <a: "!="> => RelOp::Ne(a.0, a.1),
+};
+
+ForLoop: ForStmt = {
+    "FOR" "(" <i:Assignment> ":" <s:Expr> ":" <c:Expr> ")" "{" <b:InstructionBlock> "}" =>
+        ForStmt::new(i, s, c, b),
+};
+
+ReadStatement: ReadStmt = {
+    "READ" "(" <i:Identifier> ")" ";" => ReadStmt::new(i, None),
+    "READ" "(" <i: Identifier> "[" <e: Expr> "]" ")" ";" => ReadStmt::new(i, Some(e)),
+};
+
+WriteStatement: WriteStmt = {
+    "WRITE" "(" <e:WriteElementList> ")" ";" => WriteStmt::new(e),
+};
+
+WriteElementList: Vec<WriteElement> = {
+    WriteElement => vec![<>],
+    <e:WriteElement> "," <mut es:WriteElementList> => {
+        es.insert(0, e);
+        es
+    }
+};
+
+WriteElement: WriteElement = {
+     StringLiteral => WriteElement::String(<>),
+     <i: Identifier> => WriteElement::Variable(i, None),
+     <i: Identifier> "[" <e: Expr> "]" => WriteElement::Variable(i, Some(e)),
+};
+
+Add: BinOp = {
+    <p: "+"> => BinOp::Add(p.0, p.1)
+}
+Sub: BinOp = {
+    <p: "-"> => BinOp::Sub(p.0, p.1)
+}
+Mul: BinOp = {
+    <p: "*"> => BinOp::Mul(p.0, p.1)
+}
+Div: BinOp = {
+    <p: "/"> => BinOp::Div(p.0, p.1)
+}
+And: LogOp = {
+    <a: "&&"> => LogOp::And(a.0, a.1)
+}
+Or: LogOp = {
+    <a: "||"> => LogOp::And(a.0, a.1)
+}
+Char: (char, (usize, usize)) = {
+    <c: "Char"> => (c.0, (c.1.0, c.1.1))
+}
+Float: (f32, (usize, usize)) = {
+    <f: "Float"> => (f.0, (f.1.0, f.1.0))
+}
+Integer: (i16, (usize, usize)) = {
+    <i: "Integer"> => (i.0, (i.1.0, i.1.0))
+}
+Identifier: (String, (usize, usize)) = {
+    <s: "Identifier"> => (String::from(s.0), (s.1.0, s.1.0)),
+};
+
+StringLiteral: (String, (usize, usize)) = {
+  <s: "StringLiteral"> => (String::from(s.0), (s.1.0, s.1.0)),
+};
+
+extern {
+    type Location = usize;
+    type Error = CustomError;
+
+    enum Token {
+        "VAR_GLOBAL" => Token::VarGlobal(<(usize, usize)>),
+                "DECLARATION" => Token::Declaration(<(usize, usize)>),
+                "INSTRUCTION" => Token::Instruction(<(usize, usize)>),
+                "CONST" => Token::Const(<(usize, usize)>),
+                "READ" => Token::Read(<(usize, usize)>),
+                "WRITE" => Token::Write(<(usize, usize)>),
+                "IF" => Token::If(<(usize, usize)>),
+                "ELSE" => Token::Else(<(usize, usize)>),
+                "FOR" => Token::For(<(usize, usize)>),
+                "INTEGER" => Token::IntegerType(<(usize, usize)>),
+                "FLOAT" => Token::FloatType(<(usize, usize)>),
+                "CHAR" => Token::CharType(<(usize, usize)>),
+                "+" => Token::Plus(<(usize, usize)>),
+                "-" => Token::Minus(<(usize, usize)>),
+                "*" => Token::Multiply(<(usize, usize)>),
+                "/" => Token::Divide(<(usize, usize)>),
+                "&&" => Token::And(<(usize, usize)>),
+                "||" => Token::Or(<(usize, usize)>),
+                "!" => Token::Not(<(usize, usize)>),
+                ">" => Token::GreaterThan(<(usize, usize)>),
+                "<" => Token::LessThan(<(usize, usize)>),
+                ">=" => Token::GreaterEqual(<(usize, usize)>),
+                "<=" => Token::LessEqual(<(usize, usize)>),
+                "==" => Token::Equal(<(usize, usize)>),
+                "!=" => Token::NotEqual(<(usize, usize)>),
+                "=" => Token::Assign(<(usize, usize)>),
+                ";" => Token::Semicolon(<(usize, usize)>),
+                "{" => Token::OpenBrace(<(usize, usize)>),
+                "}" => Token::CloseBrace(<(usize, usize)>),
+                "(" => Token::OpenParen(<(usize, usize)>),
+                ")" => Token::CloseParen(<(usize, usize)>),
+                "," => Token::Comma(<(usize, usize)>),
+                ":" => Token::Colon(<(usize, usize)>),
+                "[" => Token::OpenBracket(<(usize, usize)>),
+                "]" => Token::CloseBracket(<(usize, usize)>),
+                "Identifier" => Token::Identifier((<String>, <(usize, usize)>)),
+                "Integer" => Token::Integer((<i16>, <(usize, usize)>)),
+                "Float" => Token::Float((<f32>, <(usize, usize)>)),
+                "Char" => Token::Char((<char>, <(usize, usize)>)),
+                "StringLiteral" => Token::StringLiteral((<String>, <(usize, usize)>)),
+    }
+}
