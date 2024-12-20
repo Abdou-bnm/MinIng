@@ -46,7 +46,6 @@ DECLARATION {
 
     %% Constants
     CONST INTEGER MaxVal = 32767;
-    CONST INTEGER MinVal = (-32760);
     CONST FLOAT Pi = 3.14159;
     CONST FLOAT NegPi = (-3.14159);
     CONST CHAR Grade = 'A';
@@ -157,7 +156,7 @@ fn process_program(input: &str, is_default: bool) {
                 exit(1);
             },
             Ok(token) => {
-                println!("{}: {:?}", i, token);
+               //println!("{}: {:?}", i, token);
                 i += 1;
             }
         }
