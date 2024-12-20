@@ -5,21 +5,49 @@ This is a compiler implementation that includes lexical, syntactic,semantic anal
 ## Features
 
 - Lexical analysis with token identification
-- Syntax parsing
-- Semantic analysis
-- Symbol table generation
-- Support for various data types:
-    - INTEGER
-    - FLOAT
-    - CHAR
-    - Arrays of these types
-- Program structure with global variables, declarations, and instructions
-- Control structures (IF-ELSE, FOR loops)
-- Input/Output operations (READ, WRITE)
+    - Syntax parsing
+    - Semantic analysis
+    - Symbol table generation
+    - Support for various data types:
+        - INTEGER
+        - FLOAT
+        - CHAR
+        - Arrays of these types
+    - Program structure with global variables, declarations, and instructions
+    - Control structures (IF-ELSE, FOR loops)
+    - Input/Output operations (READ, WRITE)
 
 ## Installation
 
-1. Make sure you have Rust installed on your system. If not, install it from [rustup.rs](https://rustup.rs/)
+### Installing Rust
+
+1. **Windows**:
+    - Download and run the [rustup-init.exe](https://rustup.rs/) installer
+    - Follow the on-screen instructions
+    - You may need to install Visual Studio Build Tools if prompted
+
+2. **macOS/Linux**:
+    - Open a terminal and run:
+      ```bash
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+      ```
+    - Follow the prompts to complete installation
+    - Restart your terminal
+
+3. **Verify Installation**:
+   ```bash
+   rustc --version
+   cargo --version
+   ```
+
+4. **Update Rust** (when needed):
+   ```bash
+   rustup update
+   ```
+
+### Installing the Compiler
+
+1. Make sure you have Rust installed on your system (see above)
 2. Clone this repository:
    ```bash
    git clone https://github.com/Abdou-bnm/MinIng/
@@ -92,23 +120,23 @@ INSTRUCTION {
 
 ### Variable Declarations
 - Global variables: Declared in VAR_GLOBAL section
-- Constants: Declared in DECLARATION section with CONST keyword
-- Supported types: INTEGER, FLOAT, CHAR
-- Array declarations supported with size in brackets
+    - Constants: Declared in DECLARATION section with CONST keyword
+    - Supported types: INTEGER, FLOAT, CHAR
+    - Array declarations supported with size in brackets
 
 ### Operations
 - Arithmetic: +, -, *, /
-- Comparison: >, <, >=, <=, ==
-- Assignment: =, +=
+    - Comparison: >, <, >=, <=, ==
+    - Assignment: =, +=
 
 ### Control Structures
 - IF-ELSE statements
-- FOR loops with format: FOR(var = start : step : end)
+    - FOR loops with format: FOR(var = start : step : end)
 
 ### Input/Output
 - READ(variable): Read input into a variable
-- WRITE(expression): Output an expression
-- Support for string literals in WRITE statements
+    - WRITE(expression): Output an expression
+    - Support for string literals in WRITE statements
 
 ### Comments
 Use %% for single-line comments:
@@ -140,24 +168,25 @@ The compiler provides detailed feedback at each stage:
 
 The compiler provides clear error messages for:
 - File reading errors
-- Lexical errors (invalid tokens)
-- Syntax errors (invalid program structure)
-- Semantic errors (type mismatches, undefined variables, etc.)
+    - Lexical errors (invalid tokens)
+    - Syntax errors (invalid program structure)
+    - Semantic errors (type mismatches, undefined variables, etc.)
 
 ## Development
 
 This compiler is built using several Rust crates:
 - LALRPOP for parser generation
-- Logos for lexical analysis
-- Colored for terminal output formatting
+    - Logos for lexical analysis
+    - Colored for terminal output formatting
 
 ## Contributers
- - KARA Nabil
- - MEDJBER Abderrahim
- - BENAMIROUCHE Abderaouf
- - HIRECHE Hichem
- - CHABATI Rayan
- - NAILI Walid
+- KARA Nabil
+    - MEDJBER Abderrahim
+    - BENAMIROUCHE Abderaouf
+    - HIRECHE Hichem
+    - CHABATI Rayan
+    - NAILI Walid
+
 ## Contributing
 
 Feel free to submit issues and enhancement requests!

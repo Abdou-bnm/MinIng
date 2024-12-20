@@ -16,7 +16,7 @@ pub enum CustomError {
 impl fmt::Display for CustomError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            CustomError::UnknownError => write!(f, "Unknown error"),
+                CustomError::UnknownError => write!(f, "Unknown error"),
             CustomError::UnrecognizedToken((line, column)) => write!(f, "UnrecognizedToken at ({}:{})", column, line),
             CustomError::InvalidNumberFormat(num, (line, column)) => write!(f, "Invalid number format: {} at ({}:{})", num, line, column),
             CustomError::IntegerOverflow(num, (line, column)) => write!(f, "Integer overflow: {} at ({}:{})", num, line, column),
