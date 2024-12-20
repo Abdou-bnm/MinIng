@@ -178,7 +178,7 @@ impl QuadrupletGenerator {
 
                 self.add_quadruplet(Quadruplet::new(
                     Operator::Assign,
-                    Some(format!("{}[{}]", name, index_temp)),
+                    Some(format!("{:?}[{:?}]", name, index_temp)),
                     None,
                     Some(result_temp.clone())
                 ));
@@ -204,9 +204,9 @@ impl QuadrupletGenerator {
 
 fn type_value_to_string(value: &TypeValue) -> String {
     match value {
-        TypeValue::Integer(i) => i.to_string(),
-        TypeValue::Float(f) => f.to_string(),
-        TypeValue::Char(c) => c.to_string(),
+        TypeValue::Integer(i) => format!("{:?}", i),
+        TypeValue::Float(f) => format!("{:?}", f),
+        TypeValue::Char(c) => format!("{:?}", c),
         TypeValue::Array(_) => "Array".to_string(),
     }
 }
