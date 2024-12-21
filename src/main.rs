@@ -135,7 +135,7 @@ INSTRUCTION {
     Array2[0] = (-99.99);
 
     %% Testing multiple operations in one expression
-    Var1 = (MaxVal + MinVal) / 2 * (1 + 2 * 3) / 4;
+    Var1 = 2 * (1 + 2 * 3) / 4;
 }
     "#;
 
